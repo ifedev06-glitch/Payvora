@@ -210,7 +210,7 @@ export default function Home() {
                   <p className="text-center text-sm text-slate-600 dark:text-slate-400">
                     Don't have an account?{" "}
                     <Link 
-                      href="/auth/signup" 
+                      href="/auth/signup-client" 
                       className="font-semibold text-primary hover:text-primary/80 transition-colors"
                     >
                       Sign up
