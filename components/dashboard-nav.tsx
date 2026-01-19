@@ -28,7 +28,7 @@ export default function DashboardNav({ userType, userEmail }: DashboardNavProps)
       <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="text-2xl font-bold text-primary">
-            PayFlow
+            Payvora
           </Link>
           <div className="hidden md:flex gap-6">
             <Link href={dashboardLink} className="text-foreground hover:text-primary transition-colors font-medium">

@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "PayFlow - Payment Platform for Freelancers",
+  title: "Payvora - Payment Platform for Freelancers",
   description: "Modern payment app connecting freelancers and clients securely",
   generator: "v0.app",
   icons: {
