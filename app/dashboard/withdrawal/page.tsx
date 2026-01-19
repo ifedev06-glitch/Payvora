@@ -128,7 +128,7 @@ export default function WithdrawalPage() {
       return
     }
 
-    if (withdrawalAmount > (userProfile?.balance || 0)) {
+    if (withdrawalAmount > (userProfile?.ngnBalance || 0)) {
       setWithdrawalStatus({
         type: "error",
         message: "Insufficient balance",
@@ -144,7 +144,7 @@ export default function WithdrawalPage() {
 
       setWithdrawalStatus({
         type: "success",
-        message: `Withdrawal of ${userProfile?.currency} ${withdrawalAmount.toLocaleString()} initiated successfully! Funds will arrive within 1 minute .`,
+        message: `Withdrawal of ${userProfile?.ngnCurrency} ${withdrawalAmount.toLocaleString()} initiated successfully! Funds will arrive within 1 minute .`,
       })
 
       setAmount("")
@@ -208,8 +208,8 @@ export default function WithdrawalPage() {
             <div className="bg-gradient-to-br from-accent to-secondary rounded-xl shadow-lg p-6 text-white">
               <p className="text-sm opacity-90 mb-1">Available Balance</p>
               <p className="text-3xl sm:text-4xl md:text-5xl font-bold">
-                {userProfile?.currency || "NGN"}{" "}
-                {userProfile?.balance.toLocaleString("en-NG", { minimumFractionDigits: 2 }) || "0.00"}
+                {userProfile?.ngnCurrency || "NGN"}{" "}
+                {userProfile?.ngnBalance.toLocaleString("en-NG", { minimumFractionDigits: 2 }) || "0.00"}
               </p>
             </div>
 
@@ -228,7 +228,7 @@ export default function WithdrawalPage() {
                   </label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
-                      {userProfile?.currency || "NGN"}
+                      {userProfile?.ngnCurrency || "NGN"}
                     </span>
                     <input
                       id="amount"
@@ -243,7 +243,7 @@ export default function WithdrawalPage() {
                   </div>
                   {amount && parseFloat(amount) > 0 && (
                     <p className="text-sm text-gray-600 mt-2">
-                      You will receive: {userProfile?.currency}{" "}
+                      You will receive: {userProfile?.ngnCurrency}{" "}
                       {parseFloat(amount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
                     </p>
                   )}
@@ -378,17 +378,17 @@ export default function WithdrawalPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Amount</span>
                     <span className="font-medium text-gray-900">
-                      {userProfile?.currency} {parseFloat(amount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                      {userProfile?.ngnCurrency} {parseFloat(amount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Fee</span>
-                    <span className="font-medium text-gray-900">{userProfile?.currency} 0.00</span>
+                    <span className="font-medium text-gray-900">{userProfile?.ngnCurrency} 0.00</span>
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-base">
                     <span>Total</span>
                     <span>
-                      {userProfile?.currency} {parseFloat(amount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                      {userProfile?.ngnCurrency} {parseFloat(amount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="border-t border-gray-200 pt-3">
@@ -423,7 +423,7 @@ export default function WithdrawalPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p className="text-sm text-gray-600">
-                    Minimum withdrawal: {userProfile?.currency} 100.00
+                    Minimum withdrawal: {userProfile?.ngnCurrency} 100.00
                   </p>
                 </div>
                 <div className="flex gap-3">

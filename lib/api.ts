@@ -240,6 +240,8 @@ export interface CreatePaymentLinkResponse {
   currency: string
   description: string
   status: string
+  fee: number
+  total: number
 }
 
 export async function createPaymentLink(
@@ -291,6 +293,32 @@ export async function initializePayment(linkId: string): Promise<InitializeFlutt
   return response.data;
 }
 
+// Add these interfaces after your existing interfaces
+export interface ConvertUsdToNgnRequest {
+  usdAmount: number;
+}
+
+export interface ConversionResponse {
+  usdWalletBalance: number;
+  ngnWalletBalance: number;
+  usdConverted: number;
+  ngnReceived: number;
+  conversionRate: number;
+  message: string;
+}
+
+export async function convertUsdToNgn(
+  usdAmount: number
+): Promise<ConversionResponse> {
+  const response = await apiClient.post<ConversionResponse>(
+    "/payments/convert-usd-to-ngn",
+    null,
+    {
+      params: { usdAmount }
+    }
+  );
+  return response.data;
+}
 
 
 

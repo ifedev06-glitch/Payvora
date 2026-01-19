@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import DashboardNav from "@/components/dashboard-nav"
 import TransactionTable from "@/components/transaction-table"
 import { ArrowDownUp, FileText, Loader2, X } from "lucide-react"
-import { getProfile, createPaymentLink, type UserProfileResponse } from "@/lib/api"
+import { getProfile, createPaymentLink, convertUsdToNgn, type UserProfileResponse } from "@/lib/api"
 
 export default function ClientDashboard() {
   const router = useRouter()
@@ -37,7 +37,7 @@ export default function ClientDashboard() {
     { id: 3, type: "deposit", amount: 1000, freelancer: "sarah_design", status: "completed", date: "2024-12-28" },
   ])
 
-  // Exchange rate (mock)
+  // Exchange rate (mock - will be replaced with real rate from backend)
   const EXCHANGE_RATE = 1650 // 1 USD = 1650 NGN
 
   // Fetch user profile on mount
@@ -94,8 +94,8 @@ export default function ClientDashboard() {
     setTimeout(() => setMessage(""), 2000)
   }
 
-  // Handle Currency Conversion
-  const handleConvert = (e: React.FormEvent) => {
+  // Handle Currency Conversion (REAL API CALL)
+  const handleConvert = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!convertAmount || parseFloat(convertAmount) <= 0) {
       setMessage("Please enter a valid amount")
@@ -105,18 +105,37 @@ export default function ClientDashboard() {
     setIsProcessing(true)
     setMessage("Converting currency...")
 
-    // Simulate processing
-    setTimeout(() => {
-      const converted = parseFloat(convertAmount) * EXCHANGE_RATE
-      setMessage(`Converted successfully! You'll receive ₦${converted.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+    try {
+      // Call real API
+      const response = await convertUsdToNgn(parseFloat(convertAmount))
+
+      // Update user profile with new balances
+      if (userProfile) {
+        setUserProfile({
+          ...userProfile,
+          usdBalance: response.usdWalletBalance,
+          ngnBalance: response.ngnWalletBalance
+        })
+      }
+
+      setMessage(
+        `Converted successfully! You received ₦${response.ngnReceived.toLocaleString('en-NG', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 
+        })}`
+      )
       setConvertAmount("")
-      setIsProcessing(false)
 
       setTimeout(() => {
         setShowConvertModal(false)
         setMessage("")
       }, 2500)
-    }, 2000)
+    } catch (error: any) {
+      console.error("Error converting currency:", error)
+      setMessage(error.response?.data?.message || "Failed to convert currency. Please try again.")
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   // Show loading state
@@ -195,13 +214,13 @@ export default function ClientDashboard() {
                       ₦{userProfile?.ngnBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}
                     </div>
                     <Link href="/dashboard/withdrawal">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="gap-2 w-full h-8 text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-                    >
-                      Withdraw
-                    </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="gap-2 w-full h-8 text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                      >
+                        Withdraw
+                      </Button>
                     </Link>
                   </CardContent>
                 </Card>
@@ -215,7 +234,7 @@ export default function ClientDashboard() {
                 <CardDescription className="text-xs">Exchange USD to NGN</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <form onSubmit={handleConvert} className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       Amount (USD)
@@ -227,6 +246,7 @@ export default function ClientDashboard() {
                       onChange={(e) => setConvertAmount(e.target.value)}
                       className="h-10"
                       step="0.01"
+                      disabled={isProcessing}
                     />
                     {convertAmount && parseFloat(convertAmount) > 0 && (
                       <p className="text-xs text-muted-foreground mt-2">
@@ -239,9 +259,9 @@ export default function ClientDashboard() {
                     <p className="text-sm font-semibold">1 USD = ₦{EXCHANGE_RATE.toLocaleString()}</p>
                   </div>
                   <Button
+                    type="submit"
                     size="sm"
                     className="w-full gap-2 h-10 text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-                    onClick={handleConvert}
                     disabled={isProcessing}
                   >
                     {isProcessing ? (
@@ -256,7 +276,7 @@ export default function ClientDashboard() {
                       </>
                     )}
                   </Button>
-                </div>
+                </form>
               </CardContent>
             </Card>
           </div>
@@ -306,13 +326,15 @@ export default function ClientDashboard() {
                   ₦{userProfile?.ngnBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}
                 </div>
                 <div className="flex gap-4">
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    className="gap-2 flex-1 h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-                  >
-                    Withdraw
-                  </Button>
+                  <Link href="/dashboard/withdrawal">
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      className="gap-2 flex-1 h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                    >
+                      Withdraw
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
@@ -327,7 +349,7 @@ export default function ClientDashboard() {
               <CardDescription>Exchange USD to NGN</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <form onSubmit={handleConvert} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Amount (USD)
@@ -338,6 +360,8 @@ export default function ClientDashboard() {
                     value={convertAmount}
                     onChange={(e) => setConvertAmount(e.target.value)}
                     className="bg-input border-border h-11"
+                    step="0.01"
+                    disabled={isProcessing}
                   />
                   {convertAmount && parseFloat(convertAmount) > 0 && (
                     <p className="text-sm text-muted-foreground mt-2">
@@ -346,9 +370,9 @@ export default function ClientDashboard() {
                   )}
                 </div>
                 <Button
+                  type="submit"
                   size="lg"
                   className="w-full gap-2 h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-                  onClick={handleConvert}
                   disabled={isProcessing}
                 >
                   {isProcessing ? (
@@ -363,7 +387,7 @@ export default function ClientDashboard() {
                     </>
                   )}
                 </Button>
-              </div>
+              </form>
             </CardContent>
           </Card>
 
