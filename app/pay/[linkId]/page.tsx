@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowDownUp, Loader2 } from "lucide-react"
-import { getPublicPaymentDetails, initializePayment } from "@/lib/api"
+import { getPublicPaymentDetails, initializePayment } from "@/lib/public"
 
 interface PaymentDetails {
   linkId: string
