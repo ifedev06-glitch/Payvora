@@ -7,7 +7,25 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowDownUp, Loader2 } from "lucide-react"
-import { getPublicPaymentDetails, initializePayment } from "@/lib/public"
+import axios from "axios"
+import { BACKEND_BASE_URL } from "@/lib/constatnt"
+
+// Create public API client without auth interceptor
+const publicApiClient = axios.create({
+  baseURL: BACKEND_BASE_URL,
+  timeout: 30000,
+})
+
+// Public API functions
+async function getPublicPaymentDetails(linkId: string) {
+  const response = await publicApiClient.get(`/public-link/${linkId}`)
+  return response.data
+}
+
+async function initializePayment(linkId: string) {
+  const response = await publicApiClient.post(`/public-link/${linkId}/initialize`)
+  return response.data
+}
 
 interface PaymentDetails {
   linkId: string
