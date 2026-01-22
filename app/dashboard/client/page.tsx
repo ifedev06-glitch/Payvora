@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import DashboardNav from "@/components/dashboard-nav"
 import TransactionTable from "@/components/transaction-table"
 import { ArrowDownUp, FileText, Loader2, X } from "lucide-react"
-import { getProfile, createPaymentLink, convertUsdToNgn, type UserProfileResponse } from "@/lib/api"
+import { getProfile, createPaymentLink, convertUsdToNgn, getExchangeRate, type UserProfileResponse } from "@/lib/api"
 
 export default function ClientDashboard() {
   const router = useRouter()
@@ -19,6 +19,10 @@ export default function ClientDashboard() {
   // User profile from backend
   const [userProfile, setUserProfile] = useState<UserProfileResponse | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
+
+  // Exchange rate from backend
+  const [exchangeRate, setExchangeRate] = useState<number>(1650) // Default fallback
+  const [isLoadingRate, setIsLoadingRate] = useState(true)
 
   // UI States
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -37,9 +41,6 @@ export default function ClientDashboard() {
     { id: 3, type: "deposit", amount: 1000, freelancer: "sarah_design", status: "completed", date: "2024-12-28" },
   ])
 
-  // Exchange rate (mock - will be replaced with real rate from backend)
-  const EXCHANGE_RATE = 1650 // 1 USD = 1650 NGN
-
   // Fetch user profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
@@ -55,6 +56,23 @@ export default function ClientDashboard() {
     }
 
     fetchProfile()
+  }, [])
+
+  // Fetch exchange rate on mount
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      try {
+        const rate = await getExchangeRate()
+        setExchangeRate(rate)
+      } catch (error) {
+        console.error("Error fetching exchange rate:", error)
+        // Keep using fallback rate (1650)
+      } finally {
+        setIsLoadingRate(false)
+      }
+    }
+
+    fetchExchangeRate()
   }, [])
 
   // Handle Create Payment - Generate Payment Link (REAL API CALL)
@@ -139,7 +157,7 @@ export default function ClientDashboard() {
   }
 
   // Show loading state
-  if (isLoadingProfile) {
+  if (isLoadingProfile || isLoadingRate) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -250,13 +268,13 @@ export default function ClientDashboard() {
                     />
                     {convertAmount && parseFloat(convertAmount) > 0 && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        ≈ ₦{(parseFloat(convertAmount) * EXCHANGE_RATE).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ≈ ₦{(parseFloat(convertAmount) * exchangeRate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     )}
                   </div>
                   <div className="bg-muted/50 p-2.5 rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">Exchange Rate</p>
-                    <p className="text-sm font-semibold">1 USD = ₦{EXCHANGE_RATE.toLocaleString()}</p>
+                    <p className="text-sm font-semibold">1 USD = ₦{exchangeRate.toLocaleString()}</p>
                   </div>
                   <Button
                     type="submit"
@@ -365,7 +383,7 @@ export default function ClientDashboard() {
                   />
                   {convertAmount && parseFloat(convertAmount) > 0 && (
                     <p className="text-sm text-muted-foreground mt-2">
-                      ≈ ₦{(parseFloat(convertAmount) * EXCHANGE_RATE).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ≈ ₦{(parseFloat(convertAmount) * exchangeRate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   )}
                 </div>
@@ -398,13 +416,13 @@ export default function ClientDashboard() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Current Rate</p>
-                <p className="text-2xl font-bold">₦{EXCHANGE_RATE.toLocaleString()}</p>
+                <p className="text-2xl font-bold">₦{exchangeRate.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">per USD</p>
               </div>
               <div className="space-y-2 pt-4 border-t">
                 <p className="text-sm text-muted-foreground">Total Balance</p>
                 <p className="text-xl font-bold">
-                  ${((userProfile?.usdBalance || 0) + ((userProfile?.ngnBalance || 0) / EXCHANGE_RATE)).toFixed(2)}
+                  ${((userProfile?.usdBalance || 0) + ((userProfile?.ngnBalance || 0) / exchangeRate)).toFixed(2)}
                 </p>
                 <p className="text-xs text-muted-foreground">USD Equivalent</p>
               </div>
@@ -626,7 +644,7 @@ export default function ClientDashboard() {
                     <p className="text-sm text-muted-foreground mt-2">
                       You'll receive approximately:{" "}
                       <span className="font-semibold">
-                        ₦{(parseFloat(convertAmount) * EXCHANGE_RATE).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ₦{(parseFloat(convertAmount) * exchangeRate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </p>
                   )}
@@ -634,7 +652,7 @@ export default function ClientDashboard() {
 
                 <div className="bg-muted/50 p-3 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Exchange Rate</p>
-                  <p className="text-sm font-semibold">1 USD = ₦{EXCHANGE_RATE.toLocaleString()}</p>
+                  <p className="text-sm font-semibold">1 USD = ₦{exchangeRate.toLocaleString()}</p>
                 </div>
 
                 <div className="flex flex-col gap-3 pt-3">

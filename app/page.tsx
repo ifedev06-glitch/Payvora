@@ -65,25 +65,25 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-[calc(100vh-120px)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-center min-h-[calc(100vh-120px)]">
           
           {/* Left Side - Brand & Benefits */}
-          <div className="space-y-8 lg:space-y-12">
+          <div className="space-y-4 lg:space-y-12">
             {/* Brand */}
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground shadow-lg">
-                <Zap className="w-4 h-4" />
-                <span className="text-sm font-semibold tracking-wide">PAYVORA</span>
+            <div className="space-y-3 lg:space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-primary text-primary-foreground shadow-lg">
+                <Zap className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                <span className="text-xs lg:text-sm font-semibold tracking-wide">PAYVORA</span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-center lg:text-left">
+              <h1 className="text-2xl sm:text-3xl lg:text-6xl font-bold leading-tight tracking-tight text-center lg:text-left">
                 <span className="bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                   Payments Made Simple With One Link
                 </span>
               </h1>
               
-              <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-lg mx-auto lg:mx-0 text-center lg:text-left">
+              <p className="text-sm sm:text-base lg:text-xl text-slate-600 dark:text-slate-400 max-w-lg mx-auto lg:mx-0 text-center lg:text-left">
                 Secure payment platform for freelancers and clients. Pay globally, withdraw locally.
               </p>
             </div>
@@ -131,24 +131,24 @@ export default function Home() {
           {/* Right Side - Login Card */}
           <div className="flex justify-center lg:justify-end">
             <Card className="w-full max-w-md border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-900/10 dark:shadow-black/50">
-              <CardHeader className="space-y-1 pb-6">
-                <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
-                <CardDescription className="text-slate-600 dark:text-slate-400">
+              <CardHeader className="space-y-1 pb-3 lg:pb-6 pt-4 lg:pt-6">
+                <CardTitle className="text-xl lg:text-2xl font-bold tracking-tight">Welcome back</CardTitle>
+                <CardDescription className="text-sm text-slate-600 dark:text-slate-400">
                   Sign in to continue
                 </CardDescription>
               </CardHeader>
 
-              <CardContent>
+              <CardContent className="pb-4 lg:pb-6">
                 {error && (
-                  <Alert className="mb-6 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900">
+                  <Alert className="mb-4 lg:mb-6 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900">
                     <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    <AlertDescription className="text-red-800 dark:text-red-300 ml-2">
+                    <AlertDescription className="text-sm text-red-800 dark:text-red-300 ml-2">
                       {error}
                     </AlertDescription>
                   </Alert>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-5">
                   <div className="space-y-2">
                     <label 
                       htmlFor="email" 
@@ -164,7 +164,7 @@ export default function Home() {
                       value={formData.email}
                       onChange={handleChange}
                       disabled={isLoading}
-                      className="h-11 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                      className="h-10 lg:h-11 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                       required
                     />
                   </div>
@@ -184,7 +184,7 @@ export default function Home() {
                       value={formData.password}
                       onChange={handleChange}
                       disabled={isLoading}
-                      className="h-11 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                      className="h-10 lg:h-11 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
                       required
                     />
                   </div>
@@ -192,7 +192,7 @@ export default function Home() {
                   <Button 
                     type="submit" 
                     size="lg"
-                    className="w-full h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-200" 
+                    className="w-full h-11 lg:h-12 text-sm lg:text-base font-semibold shadow-md hover:shadow-lg transition-all duration-200" 
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -206,7 +206,7 @@ export default function Home() {
                   </Button>
                 </form>
 
-                <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+                <div className="mt-5 lg:mt-6 pt-5 lg:pt-6 border-t border-slate-200 dark:border-slate-800">
                   <p className="text-center text-sm text-slate-600 dark:text-slate-400">
                     Don't have an account?{" "}
                     <Link 
@@ -223,40 +223,40 @@ export default function Home() {
         </div>
 
         {/* Mobile Features - Under Login Card */}
-        <div className="lg:hidden grid grid-cols-3 gap-4 mt-8">
-          <div className="flex flex-col items-center text-center space-y-2">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="lg:hidden grid grid-cols-3 gap-3 mt-4">
+          <div className="flex flex-col items-center text-center space-y-1">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Instant</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400">Real-time transfers</p>
+            <h3 className="text-xs font-semibold text-slate-900 dark:text-white">Instant</h3>
+            <p className="text-[10px] leading-tight text-slate-600 dark:text-slate-400">Real-time transfers</p>
           </div>
 
-          <div className="flex flex-col items-center text-center space-y-2">
-            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex flex-col items-center text-center space-y-1">
+            <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+              <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Secure</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400">Bank-grade encryption</p>
+            <h3 className="text-xs font-semibold text-slate-900 dark:text-white">Secure</h3>
+            <p className="text-[10px] leading-tight text-slate-600 dark:text-slate-400">Bank-grade encryption</p>
           </div>
 
-          <div className="flex flex-col items-center text-center space-y-2">
-            <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-              <Globe className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <div className="flex flex-col items-center text-center space-y-1">
+            <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <Globe className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Global</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400">USD to NGN instantly</p>
+            <h3 className="text-xs font-semibold text-slate-900 dark:text-white">Global</h3>
+            <p className="text-[10px] leading-tight text-slate-600 dark:text-slate-400">USD to NGN instantly</p>
           </div>
         </div>
 
         {/* Mobile Trust Indicators */}
-        <div className="flex lg:hidden items-center justify-center gap-6 mt-8 pt-8 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        <div className="flex lg:hidden items-center justify-center gap-4 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>KYC Verified</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>No Hidden Fees</span>
           </div>
         </div>

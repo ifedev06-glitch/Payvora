@@ -320,6 +320,10 @@ export async function convertUsdToNgn(
   return response.data;
 }
 
+export async function getExchangeRate(): Promise<number> {
+  const response = await apiClient.get<number>("/api/rate");
+  return response.data;
+}
 
 
 export default apiClient;
