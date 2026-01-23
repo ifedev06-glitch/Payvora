@@ -524,7 +524,7 @@ export default function ClientDashboard() {
         {/* Transaction History */}
         <Card>
           <CardHeader>
-            <CardTitle>Transaction History</CardTitle>
+            <CardTitle>Transaction History , Note , This is mock data</CardTitle>
             <CardDescription>Your recent transactions</CardDescription>
           </CardHeader>
           <CardContent>

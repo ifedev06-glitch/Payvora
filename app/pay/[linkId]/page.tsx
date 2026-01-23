@@ -196,9 +196,14 @@ export default function CheckoutPage() {
               </div>
               
               <div className="flex justify-between items-center py-3 border-b border-dashed">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground font-medium">Processing Fee</span>
-                  <span className="text-xs bg-muted px-2 py-1 rounded-full">2.3%</span>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground font-medium">Processing Fee</span>
+                    <span className="text-xs bg-muted px-2 py-1 rounded-full">2.5%</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground/70">
+                    2.5% processing + $0.40 platform fee
+                  </span>
                 </div>
                 <span className="text-lg font-semibold text-muted-foreground">
                   ${paymentDetails.fee.toFixed(2)}
