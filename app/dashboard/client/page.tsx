@@ -9,9 +9,98 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import DashboardNav from "@/components/dashboard-nav"
-import TransactionTable from "@/components/transaction-table"
 import { ArrowDownUp, FileText, Loader2, X } from "lucide-react"
 import { getProfile, createPaymentLink, convertUsdToNgn, getExchangeRate, type UserProfileResponse } from "@/lib/api"
+
+// Transaction Table Component
+interface Transaction {
+  id: number
+  type: string
+  amount: number
+  status: string
+  date: string
+}
+
+function TransactionTable({ transactions }: { transactions: Transaction[] }) {
+  const getStatusBadge = (status: string) => {
+    const statusStyles = {
+      completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+      pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+      failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    }
+    
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status as keyof typeof statusStyles] || statusStyles.pending}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    )
+  }
+
+  const getTypeBadge = (type: string) => {
+    const typeStyles = {
+      payment: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+      deposit: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+      withdrawal: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+      conversion: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
+    }
+    
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${typeStyles[type as keyof typeof typeStyles] || typeStyles.payment}`}>
+        {type.charAt(0).toUpperCase() + type.slice(1)}
+      </span>
+    )
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No transactions yet
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-border">
+            <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Type</th>
+            <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Amount</th>
+            <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Status</th>
+            <th className="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((transaction) => (
+            <tr key={transaction.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+              <td className="py-3 px-4">
+                {getTypeBadge(transaction.type)}
+              </td>
+              <td className="py-3 px-4 font-semibold">
+                ${transaction.amount.toFixed(2)}
+              </td>
+              <td className="py-3 px-4">
+                {getStatusBadge(transaction.status)}
+              </td>
+              <td className="py-3 px-4 text-sm text-muted-foreground">
+                {formatDate(transaction.date)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 export default function ClientDashboard() {
   const router = useRouter()
@@ -36,9 +125,11 @@ export default function ClientDashboard() {
 
   // Mock transactions
   const [transactions] = useState([
-    { id: 1, type: "payment", freelancer: "john_dev", amount: 150, status: "completed", date: "2025-01-02" },
-    { id: 2, type: "payment", freelancer: "sarah_design", amount: 300, status: "completed", date: "2025-01-01" },
-    { id: 3, type: "deposit", amount: 1000, freelancer: "sarah_design", status: "completed", date: "2024-12-28" },
+    { id: 1, type: "payment", amount: 150, status: "completed", date: "2025-01-02" },
+    { id: 2, type: "deposit", amount: 1000, status: "completed", date: "2025-01-01" },
+    { id: 3, type: "conversion", amount: 500, status: "completed", date: "2024-12-28" },
+    { id: 4, type: "withdrawal", amount: 250, status: "pending", date: "2024-12-25" },
+    { id: 5, type: "payment", amount: 75, status: "failed", date: "2024-12-20" },
   ])
 
   // Fetch user profile on mount
@@ -437,7 +528,7 @@ export default function ClientDashboard() {
             <CardDescription>Your recent transactions</CardDescription>
           </CardHeader>
           <CardContent>
-            <TransactionTable transactions={transactions} userType="client" />
+            <TransactionTable transactions={transactions} />
           </CardContent>
         </Card>
       </main>

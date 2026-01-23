@@ -321,7 +321,7 @@ export async function convertUsdToNgn(
 }
 
 export async function getExchangeRate(): Promise<number> {
-  const response = await apiClient.get<number>("/api/rate");
+  const response = await apiClient.get<number>("/payments/rate");
   return response.data;
 }
 
