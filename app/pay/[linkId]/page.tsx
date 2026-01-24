@@ -196,15 +196,21 @@ export default function CheckoutPage() {
               </div>
               
               <div className="flex justify-between items-center py-3 border-b border-dashed">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground font-medium">Processing Fee</span>
-                    <span className="text-xs bg-muted px-2 py-1 rounded-full">2.5%</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground/70">
-                    2.5% processing + $0.40 platform fee
-                  </span>
-                </div>
+                <span className="text-muted-foreground font-medium">Card Processor Fee</span>
+                <span className="text-lg font-semibold text-muted-foreground">
+                  ${((paymentDetails.fee || 0) - 0.30).toFixed(2)}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center py-3 border-b border-dashed">
+                <span className="text-muted-foreground font-medium">Platform Fee</span>
+                <span className="text-lg font-semibold text-muted-foreground">
+                  $0.30
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center py-3 border-b border-dashed">
+                <span className="text-muted-foreground font-medium">Total Fees</span>
                 <span className="text-lg font-semibold text-muted-foreground">
                   ${paymentDetails.fee.toFixed(2)}
                 </span>
@@ -242,7 +248,7 @@ export default function CheckoutPage() {
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                     <span className="text-xs font-bold text-primary-foreground">💳</span>
                   </div>
-                  <span className="font-semibold">Card / Bank Transfer</span>
+                  <span className="font-semibold">Card / ApplePay / GooglePay</span>
                 </div>
               </div>
             </div>
