@@ -9,44 +9,58 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import DashboardNav from "@/components/dashboard-nav"
-import { ArrowDownUp, FileText, Loader2, X } from "lucide-react"
-import { getProfile, createPaymentLink, convertUsdToNgn, getExchangeRate, type UserProfileResponse } from "@/lib/api"
+import { ArrowDownUp, FileText, Loader2, X, Clock, Wallet } from "lucide-react"
+import { 
+  getProfile, 
+  createPaymentLink, 
+  convertUsdToNgn, 
+  getExchangeRate,
+  getAllTransactions,
+  type UserProfileResponse,
+  type TransactionResponse 
+} from "@/lib/api"
 
 // Transaction Table Component
-interface Transaction {
-  id: number
-  type: string
-  amount: number
-  status: string
-  date: string
-}
-
-function TransactionTable({ transactions }: { transactions: Transaction[] }) {
+function TransactionTable({ transactions }: { transactions: TransactionResponse[] }) {
   const getStatusBadge = (status: string) => {
     const statusStyles = {
-      completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-      pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-      failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+      COMPLETED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+      PROCESSING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+      PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+      FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
     }
     
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status as keyof typeof statusStyles] || statusStyles.pending}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status as keyof typeof statusStyles] || statusStyles.PENDING}`}>
+        {status.charAt(0) + status.slice(1).toLowerCase()}
       </span>
     )
   }
 
   const getTypeBadge = (type: string) => {
     const typeStyles = {
-      payment: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-      deposit: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-      withdrawal: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-      conversion: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
+      DEPOSIT: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+      WITHDRAWAL: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+      CONVERSION: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400",
+      TRANSFER_SENT: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+      TRANSFER_RECEIVED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+      REFUND: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+      FEE: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+    }
+    
+    const typeLabels: Record<string, string> = {
+      TRANSFER_SENT: "Sent",
+      TRANSFER_RECEIVED: "Received",
+      DEPOSIT: "Deposit",
+      WITHDRAWAL: "Withdrawal",
+      CONVERSION: "Conversion",
+      REFUND: "Refund",
+      FEE: "Fee",
     }
     
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${typeStyles[type as keyof typeof typeStyles] || typeStyles.payment}`}>
-        {type.charAt(0).toUpperCase() + type.slice(1)}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${typeStyles[type as keyof typeof typeStyles] || typeStyles.DEPOSIT}`}>
+        {typeLabels[type] || type}
       </span>
     )
   }
@@ -58,6 +72,13 @@ function TransactionTable({ transactions }: { transactions: Transaction[] }) {
       month: 'short', 
       day: 'numeric' 
     })
+  }
+
+  const formatAmount = (amount: number, currency: string) => {
+    if (currency === 'NGN') {
+      return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
+    return `$${amount.toFixed(2)}`
   }
 
   if (transactions.length === 0) {
@@ -86,13 +107,13 @@ function TransactionTable({ transactions }: { transactions: Transaction[] }) {
                 {getTypeBadge(transaction.type)}
               </td>
               <td className="py-3 px-4 font-semibold">
-                ${transaction.amount.toFixed(2)}
+                {formatAmount(transaction.amount, transaction.currency)}
               </td>
               <td className="py-3 px-4">
                 {getStatusBadge(transaction.status)}
               </td>
               <td className="py-3 px-4 text-sm text-muted-foreground">
-                {formatDate(transaction.date)}
+                {formatDate(transaction.createdAt)}
               </td>
             </tr>
           ))}
@@ -110,8 +131,12 @@ export default function ClientDashboard() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
 
   // Exchange rate from backend
-  const [exchangeRate, setExchangeRate] = useState<number>(1650) // Default fallback
+  const [exchangeRate, setExchangeRate] = useState<number>(1650)
   const [isLoadingRate, setIsLoadingRate] = useState(true)
+
+  // Transactions from backend
+  const [transactions, setTransactions] = useState<TransactionResponse[]>([])
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
 
   // UI States
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -122,15 +147,8 @@ export default function ClientDashboard() {
   const [convertAmount, setConvertAmount] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [message, setMessage] = useState("")
-
-  // Mock transactions
-  const [transactions] = useState([
-    { id: 1, type: "payment", amount: 150, status: "completed", date: "2025-01-02" },
-    { id: 2, type: "deposit", amount: 1000, status: "completed", date: "2025-01-01" },
-    { id: 3, type: "conversion", amount: 500, status: "completed", date: "2024-12-28" },
-    { id: 4, type: "withdrawal", amount: 250, status: "pending", date: "2024-12-25" },
-    { id: 5, type: "payment", amount: 75, status: "failed", date: "2024-12-20" },
-  ])
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false)
+  const [isNavigatingWithdraw, setIsNavigatingWithdraw] = useState(false)
 
   // Fetch user profile on mount
   useEffect(() => {
@@ -157,7 +175,6 @@ export default function ClientDashboard() {
         setExchangeRate(rate)
       } catch (error) {
         console.error("Error fetching exchange rate:", error)
-        // Keep using fallback rate (1650)
       } finally {
         setIsLoadingRate(false)
       }
@@ -165,6 +182,39 @@ export default function ClientDashboard() {
 
     fetchExchangeRate()
   }, [])
+
+  // Fetch transactions on mount
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const allTransactions = await getAllTransactions()
+        setTransactions(allTransactions.slice(0, 4))
+      } catch (error) {
+        console.error("Error fetching transactions:", error)
+      } finally {
+        setIsLoadingTransactions(false)
+      }
+    }
+
+    fetchTransactions()
+  }, [])
+
+  // Calculate conversion preview with fee
+  const calculateConversionPreview = (amount: string) => {
+    if (!amount || parseFloat(amount) <= 0) return null
+    
+    const usdAmount = parseFloat(amount)
+    const conversionFee = usdAmount * 0.01
+    const amountAfterFee = usdAmount - conversionFee
+    const ngnAmount = amountAfterFee * exchangeRate
+    
+    return {
+      usdAmount,
+      conversionFee,
+      amountAfterFee,
+      ngnAmount
+    }
+  }
 
   // Handle Create Payment - Generate Payment Link (REAL API CALL)
   const handleCreatePayment = async (e: React.FormEvent) => {
@@ -178,12 +228,10 @@ export default function ClientDashboard() {
     setMessage("Generating payment link...")
 
     try {
-      // Call real API
       const response = await createPaymentLink({
         amount: parseFloat(paymentAmount)
       })
 
-      // Set the payment link from backend response
       setPaymentLink(response.paymentUrl)
       setShowPaymentModal(false)
       setShowPaymentLinkModal(true)
@@ -215,10 +263,8 @@ export default function ClientDashboard() {
     setMessage("Converting currency...")
 
     try {
-      // Call real API
       const response = await convertUsdToNgn(parseFloat(convertAmount))
 
-      // Update user profile with new balances
       if (userProfile) {
         setUserProfile({
           ...userProfile,
@@ -228,17 +274,21 @@ export default function ClientDashboard() {
       }
 
       setMessage(
-        `Converted successfully! You received ₦${response.ngnReceived.toLocaleString('en-NG', { 
+        `Converted successfully! Fee: $${response.conversionFee.toFixed(2)} (1%). You received ₦${response.ngnReceived.toLocaleString('en-NG', { 
           minimumFractionDigits: 2, 
           maximumFractionDigits: 2 
         })}`
       )
       setConvertAmount("")
 
+      // Refresh transactions after conversion
+      const allTransactions = await getAllTransactions()
+      setTransactions(allTransactions.slice(0, 4))
+
       setTimeout(() => {
         setShowConvertModal(false)
         setMessage("")
-      }, 2500)
+      }, 3500)
     } catch (error: any) {
       console.error("Error converting currency:", error)
       setMessage(error.response?.data?.message || "Failed to convert currency. Please try again.")
@@ -255,6 +305,8 @@ export default function ClientDashboard() {
       </div>
     )
   }
+
+  const conversionPreview = calculateConversionPreview(convertAmount)
 
   return (
     <div className="min-h-screen bg-background">
@@ -276,192 +328,185 @@ export default function ClientDashboard() {
           </Alert>
         )}
 
-        {/* Dual Wallet Cards */}
+        {/* Compact Wallet Cards - Horizontal Scroll on Mobile */}
         <div className="mb-8">
           {/* Mobile: Horizontal Scroll */}
-          <div className="md:hidden">
-            <div className="overflow-x-auto pb-4 -mx-4 px-4 mb-4">
-              <div className="flex gap-4 min-w-max">
-                {/* USD Wallet */}
-                <Card className="bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-lg w-[280px] flex-shrink-0 rounded-2xl">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-lg">💰</span>
-                      </div>
-                      <CardTitle className="text-sm font-medium">USD Wallet</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2 pb-3">
-                    <div className="text-2xl font-bold">
-                      ${userProfile?.usdBalance.toFixed(2) || "0.00"}
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="gap-2 w-full h-8 text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-                      onClick={() => setShowPaymentModal(true)}
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      Create Payment
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* NGN Wallet */}
-                <Card className="bg-gradient-to-br from-primary/90 via-secondary/80 to-primary/70 text-primary-foreground shadow-lg w-[280px] flex-shrink-0 rounded-2xl">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-lg">💰</span>
-                      </div>
-                      <CardTitle className="text-sm font-medium">NGN Wallet</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2 pb-3">
-                    <div className="text-2xl font-bold">
-                      ₦{userProfile?.ngnBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}
-                    </div>
-                    <Link href="/dashboard/withdrawal">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="gap-2 w-full h-8 text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-                      >
-                        Withdraw
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            {/* Mobile Conversion Card */}
-            <Card className="rounded-2xl">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Convert to Naira</CardTitle>
-                <CardDescription className="text-xs">Exchange USD to NGN</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleConvert} className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Amount (USD)
-                    </label>
-                    <Input
-                      type="number"
-                      placeholder="0.00"
-                      value={convertAmount}
-                      onChange={(e) => setConvertAmount(e.target.value)}
-                      className="h-10"
-                      step="0.01"
-                      disabled={isProcessing}
-                    />
-                    {convertAmount && parseFloat(convertAmount) > 0 && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        ≈ ₦{(parseFloat(convertAmount) * exchangeRate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                    )}
+          <div className="md:hidden overflow-x-auto pb-4 -mx-4 px-4">
+            <div className="flex gap-3 min-w-max">
+              {/* USD Wallet Card - Compact & Wide */}
+              <Card className="bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-lg w-[320px] flex-shrink-0 rounded-2xl">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Wallet className="w-3.5 h-3.5 opacity-80" />
+                    <p className="text-xs font-medium opacity-90">USD Wallet</p>
                   </div>
-                  <div className="bg-muted/50 p-2.5 rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Exchange Rate</p>
-                    <p className="text-sm font-semibold">1 USD = ₦{exchangeRate.toLocaleString()}</p>
+                  <div className="text-2xl font-bold mb-1">
+                    ${userProfile?.usdBalance.toFixed(2) || "0.00"}
                   </div>
+                  
+                  {/* Processing Balance - Compact */}
+                  {userProfile?.usdProcessingBalance && userProfile.usdProcessingBalance > 0 && (
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1 mb-3 flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span className="text-[10px] opacity-90">Processing</span>
+                      </div>
+                      <span className="text-xs font-semibold">${userProfile.usdProcessingBalance.toFixed(2)}</span>
+                    </div>
+                  )}
+                  
                   <Button
-                    type="submit"
                     size="sm"
-                    className="w-full gap-2 h-10 text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-                    disabled={isProcessing}
+                    className="w-full gap-1.5 h-8 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm border border-white/30"
+                    onClick={() => {
+                      setIsCreatingPayment(true)
+                      setShowPaymentModal(true)
+                      setTimeout(() => setIsCreatingPayment(false), 300)
+                    }}
+                    disabled={isCreatingPayment}
                   >
-                    {isProcessing ? (
+                    {isCreatingPayment ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Processing...
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Loading...
                       </>
                     ) : (
                       <>
-                        <ArrowDownUp className="w-4 h-4" />
-                        Convert to NGN
+                        <FileText className="w-3.5 h-3.5" />
+                        Create Payment
                       </>
                     )}
                   </Button>
-                </form>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* NGN Wallet Card - Compact & Wide */}
+              <Card className="bg-gradient-to-br from-primary/90 via-secondary/80 to-primary/70 text-primary-foreground shadow-lg w-[320px] flex-shrink-0 rounded-2xl">
+                <CardContent className="pt-4 pb-4 flex flex-col h-full">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Wallet className="w-3.5 h-3.5 opacity-80" />
+                    <p className="text-xs font-medium opacity-90">NGN Wallet</p>
+                  </div>
+                  <div className="text-2xl font-bold mb-auto">
+                    ₦{userProfile?.ngnBalance.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || "0"}
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full h-8 text-xs font-semibold rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm border border-white/30 mt-3"
+                    onClick={() => {
+                      setIsNavigatingWithdraw(true)
+                      router.push('/dashboard/withdrawal')
+                    }}
+                    disabled={isNavigatingWithdraw}
+                  >
+                    {isNavigatingWithdraw ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                        Loading...
+                      </>
+                    ) : (
+                      'Withdraw'
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          {/* Desktop: Grid */}
-          <div className="hidden md:grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* USD Wallet */}
-            <Card className="bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-lg">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                    <span className="text-xl">💰</span>
-                  </div>
-                  <CardTitle className="text-lg">USD Wallet</CardTitle>
+          {/* Desktop: Grid Layout */}
+          <div className="hidden md:grid md:grid-cols-2 gap-5">
+            {/* USD Wallet Card - Compact Desktop */}
+            <Card className="bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-lg rounded-2xl">
+              <CardContent className="pt-5 pb-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wallet className="w-4 h-4 opacity-80" />
+                  <p className="text-sm font-medium opacity-90">USD Wallet</p>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-4xl font-bold">
+                <div className="text-3xl font-bold mb-1">
                   ${userProfile?.usdBalance.toFixed(2) || "0.00"}
                 </div>
-                <div className="flex gap-4">
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    className="gap-2 min-w-[180px] h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-                    onClick={() => setShowPaymentModal(true)}
-                  >
-                    <FileText className="w-5 h-5" />
-                    Create Payment
-                  </Button>
-                </div>
+                
+                {/* Processing Balance - Compact Desktop */}
+                {userProfile?.usdProcessingBalance && userProfile.usdProcessingBalance > 0 && (
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2 mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span className="text-xs opacity-90">Processing (48hr)</span>
+                    </div>
+                    <span className="text-sm font-semibold">${userProfile.usdProcessingBalance.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                <Button
+                  size="sm"
+                  className="w-full gap-2 h-9 text-sm font-semibold rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm border border-white/30"
+                  onClick={() => {
+                    setIsCreatingPayment(true)
+                    setShowPaymentModal(true)
+                    setTimeout(() => setIsCreatingPayment(false), 300)
+                  }}
+                  disabled={isCreatingPayment}
+                >
+                  {isCreatingPayment ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4" />
+                      Create Payment
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
 
-            {/* NGN Wallet */}
-            <Card className="bg-gradient-to-br from-primary/90 via-secondary/80 to-primary/70 text-primary-foreground shadow-lg">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                    <span className="text-xl">💰</span>
-                  </div>
-                  <CardTitle className="text-lg">NGN Wallet</CardTitle>
+            {/* NGN Wallet Card - Compact Desktop */}
+            <Card className="bg-gradient-to-br from-primary/90 via-secondary/80 to-primary/70 text-primary-foreground shadow-lg rounded-2xl">
+              <CardContent className="pt-5 pb-5 flex flex-col h-full">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wallet className="w-4 h-4 opacity-80" />
+                  <p className="text-sm font-medium opacity-90">NGN Wallet</p>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-4xl font-bold">
-                  ₦{userProfile?.ngnBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0.00"}
+                <div className="text-3xl font-bold mb-auto">
+                  ₦{userProfile?.ngnBalance.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || "0"}
                 </div>
-                <div className="flex gap-4">
-                  <Link href="/dashboard/withdrawal">
-                    <Button
-                      variant="secondary"
-                      size="lg"
-                      className="gap-2 flex-1 h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-                    >
-                      Withdraw
-                    </Button>
-                  </Link>
-                </div>
+                <Button
+                  size="sm"
+                  className="w-full h-9 text-sm font-semibold rounded-lg bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm border border-white/30 mt-4"
+                  onClick={() => {
+                    setIsNavigatingWithdraw(true)
+                    router.push('/dashboard/withdrawal')
+                  }}
+                  disabled={isNavigatingWithdraw}
+                >
+                  {isNavigatingWithdraw ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Loading...
+                    </>
+                  ) : (
+                    'Withdraw'
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Desktop Conversion Section */}
-        <div className="hidden md:grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Conversion Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Convert Currency</CardTitle>
-              <CardDescription>Exchange USD to NGN</CardDescription>
+              <CardDescription>Exchange USD to NGN (1% conversion fee) - Only available balance can be converted</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleConvert} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Amount (USD)
+                    Amount (USD) - Available: ${userProfile?.usdBalance.toFixed(2) || "0.00"}
                   </label>
                   <Input
                     type="number"
@@ -472,10 +517,29 @@ export default function ClientDashboard() {
                     step="0.01"
                     disabled={isProcessing}
                   />
-                  {convertAmount && parseFloat(convertAmount) > 0 && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      ≈ ₦{(parseFloat(convertAmount) * exchangeRate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
+                  {conversionPreview && (
+                    <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Amount to convert</span>
+                        <span className="font-semibold">${conversionPreview.usdAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Conversion Fee (1%)</span>
+                        <span className="font-semibold text-orange-600">-${conversionPreview.conversionFee.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Amount after fee</span>
+                        <span className="font-semibold">${conversionPreview.amountAfterFee.toFixed(2)}</span>
+                      </div>
+                      <div className="pt-2 border-t border-border">
+                        <div className="flex justify-between">
+                          <span className="font-medium">You'll receive</span>
+                          <span className="text-lg font-bold text-green-600">
+                            ₦{conversionPreview.ngnAmount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
                 <Button
@@ -511,9 +575,14 @@ export default function ClientDashboard() {
                 <p className="text-xs text-muted-foreground">per USD</p>
               </div>
               <div className="space-y-2 pt-4 border-t">
+                <p className="text-sm text-muted-foreground">Conversion Fee</p>
+                <p className="text-xl font-bold text-orange-600">1%</p>
+                <p className="text-xs text-muted-foreground">Applied to all conversions</p>
+              </div>
+              <div className="space-y-2 pt-4 border-t">
                 <p className="text-sm text-muted-foreground">Total Balance</p>
                 <p className="text-xl font-bold">
-                  ${((userProfile?.usdBalance || 0) + ((userProfile?.ngnBalance || 0) / exchangeRate)).toFixed(2)}
+                  ${((userProfile?.usdBalance || 0) + (userProfile?.usdProcessingBalance || 0) + ((userProfile?.ngnBalance || 0) / exchangeRate)).toFixed(2)}
                 </p>
                 <p className="text-xs text-muted-foreground">USD Equivalent</p>
               </div>
@@ -523,12 +592,27 @@ export default function ClientDashboard() {
 
         {/* Transaction History */}
         <Card>
-          <CardHeader>
-            <CardTitle>Transaction History , Note , This is mock data</CardTitle>
-            <CardDescription>Your recent transactions</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>Your latest 4 transactions</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/dashboard/transactions')}
+            >
+              View All
+            </Button>
           </CardHeader>
           <CardContent>
-            <TransactionTable transactions={transactions} />
+            {isLoadingTransactions ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : (
+              <TransactionTable transactions={transactions} />
+            )}
           </CardContent>
         </Card>
       </main>
@@ -708,7 +792,7 @@ export default function ClientDashboard() {
               </Button>
               <CardTitle>Convert to Naira</CardTitle>
               <CardDescription>
-                Convert USD to NGN
+                Convert USD to NGN (1% fee)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -720,7 +804,7 @@ export default function ClientDashboard() {
               <form onSubmit={handleConvert} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Amount (USD)
+                    Amount (USD) - Available: ${userProfile?.usdBalance.toFixed(2) || "0.00"}
                   </label>
                   <Input
                     type="number"
@@ -731,13 +815,25 @@ export default function ClientDashboard() {
                     disabled={isProcessing}
                     step="0.01"
                   />
-                  {convertAmount && parseFloat(convertAmount) > 0 && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      You'll receive approximately:{" "}
-                      <span className="font-semibold">
-                        ₦{(parseFloat(convertAmount) * exchangeRate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </p>
+                  {conversionPreview && (
+                    <div className="mt-3 p-3 bg-muted/50 rounded-lg space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Conversion Fee (1%)</span>
+                        <span className="font-medium text-orange-600">-${conversionPreview.conversionFee.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Amount after fee</span>
+                        <span className="font-medium">${conversionPreview.amountAfterFee.toFixed(2)}</span>
+                      </div>
+                      <div className="pt-2 border-t border-border">
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium">You'll receive</span>
+                          <span className="font-bold text-green-600">
+                            ₦{conversionPreview.ngnAmount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
 

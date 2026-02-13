@@ -12,12 +12,13 @@ import {
   initiateWithdrawal,
   BankAccountResponse,
   RecipientRequest,
-  PaystackRecipientResponse,
+  FlutterwaveBeneficiaryResponse,
 } from "@/lib/api"
 
 const NIGERIAN_BANKS = [
   { code: "999992", name: "OPay Digital Services Limited (OPay)" },
   { code: "044", name: "Access Bank" },
+  { code: "063", name: "Access Bank (Diamond)" },
   { code: "011", name: "First Bank of Nigeria" },
   { code: "058", name: "Guaranty Trust Bank" },
   { code: "214", name: "First City Monument Bank" },
@@ -25,6 +26,8 @@ const NIGERIAN_BANKS = [
   { code: "035", name: "Wema Bank" },
   { code: "057", name: "Zenith Bank" },
   { code: "50211", name: "Kuda Bank" },
+  { code: "033", name: "United Bank for Africa" },
+  { code: "215", name: "Unity Bank" },
 ]
 
 export default function WithdrawalPage() {
@@ -77,32 +80,47 @@ export default function WithdrawalPage() {
       return
     }
 
+    if (bankForm.accountNumber.length !== 10) {
+      setAddBankError("Account number must be 10 digits")
+      return
+    }
+
     try {
       setIsAddingBank(true)
       setAddBankError("")
 
       const recipientRequest: RecipientRequest = {
-        type: "nuban",
-        name: bankForm.accountName,
-        accountNumber: bankForm.accountNumber,
-        bankCode: bankForm.bankCode,
-        currency: "NGN",
+        account_number: bankForm.accountNumber,
+        account_bank: bankForm.bankCode,
+        beneficiary_name: bankForm.accountName, // Pass the account name
       }
+      console.log("Sending recipient request to backend:", recipientRequest)
 
-      const response: PaystackRecipientResponse = await createRecipient(recipientRequest)
 
-      // Extract the recipient details from the nested response structure
+      const response: FlutterwaveBeneficiaryResponse = await createRecipient(recipientRequest)
+
+      // Extract the beneficiary details
       const newBankAccount: BankAccountResponse = {
-        recipientCode: response.data.recipient_code,
-        name: response.data.name,
-        accountNumber: response.data.details.account_number,
-        bankCode: response.data.details.bank_code,
-        currency: response.data.currency,
+        recipientCode: String(response.data.id),
+        name: response.data.fullName, // Flutterwave returns verified name
+        accountNumber: response.data.accountNumber,
+        bankCode: response.data.bankCode,
+        currency: "NGN",
       }
 
       setBankAccounts([...bankAccounts, newBankAccount])
       setIsAddBankOpen(false)
       setBankForm({ accountName: "", accountNumber: "", bankCode: "" })
+      
+      setWithdrawalStatus({
+        type: "success",
+        message: `Bank account added successfully! Verified Name: ${response.data.fullName}`,
+      })
+
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setWithdrawalStatus({ type: null, message: "" })
+      }, 5000)
     } catch (error: any) {
       setAddBankError(error.response?.data?.message || "Failed to add bank account. Please try again.")
     } finally {
@@ -128,6 +146,14 @@ export default function WithdrawalPage() {
       return
     }
 
+    if (withdrawalAmount < 100) {
+      setWithdrawalStatus({
+        type: "error",
+        message: "Minimum withdrawal amount is ₦100",
+      })
+      return
+    }
+
     if (withdrawalAmount > (userProfile?.ngnBalance || 0)) {
       setWithdrawalStatus({
         type: "error",
@@ -144,7 +170,7 @@ export default function WithdrawalPage() {
 
       setWithdrawalStatus({
         type: "success",
-        message: `Withdrawal of ${userProfile?.ngnCurrency} ${withdrawalAmount.toLocaleString()} initiated successfully! Funds will arrive within 1 minute .`,
+        message: `Withdrawal of ${userProfile?.ngnCurrency} ${withdrawalAmount.toLocaleString()} initiated successfully! Funds will arrive within 1 minute.`,
       })
 
       setAmount("")
@@ -153,7 +179,7 @@ export default function WithdrawalPage() {
       setTimeout(async () => {
         const updatedProfile = await getProfile()
         setUserProfile(updatedProfile)
-      }, 1000)
+      }, 2000)
     } catch (error: any) {
       setWithdrawalStatus({
         type: "error",
@@ -178,7 +204,7 @@ export default function WithdrawalPage() {
   const selectedAccountDetails = bankAccounts.find((acc) => acc.recipientCode === selectedAccount)
   const selectedBankName = NIGERIAN_BANKS.find((bank) => bank.code === bankForm.bankCode)?.name
   const getBankNameFromCode = (code: string) => {
-    return NIGERIAN_BANKS.find((bank) => bank.code === code)?.name || "Bank"
+    return NIGERIAN_BANKS.find((bank) => bank.code === code)?.name || code
   }
 
   return (
@@ -237,15 +263,24 @@ export default function WithdrawalPage() {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       className="w-full pl-20 pr-4 py-3 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                      min="0"
+                      min="100"
                       step="0.01"
                     />
                   </div>
-                  {amount && parseFloat(amount) > 0 && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      You will receive: {userProfile?.ngnCurrency}{" "}
-                      {parseFloat(amount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
-                    </p>
+                  {amount && parseFloat(amount) >= 100 && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-sm text-gray-600">
+                        Transfer fee: {userProfile?.ngnCurrency} 10.00
+                      </p>
+                      <p className="text-sm font-medium text-gray-900">
+                        You will receive: {userProfile?.ngnCurrency}{" "}
+                        {parseFloat(amount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Total debit: {userProfile?.ngnCurrency}{" "}
+                        {(parseFloat(amount) + 10).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
                   )}
                 </div>
 
@@ -359,7 +394,7 @@ export default function WithdrawalPage() {
                 {/* Withdraw Button */}
                 <button
                   onClick={handleWithdraw}
-                  disabled={!selectedAccount || !amount || isWithdrawing || parseFloat(amount) <= 0}
+                  disabled={!selectedAccount || !amount || isWithdrawing || parseFloat(amount) < 100}
                   className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-lg"
                 >
                   {isWithdrawing ? "Processing..." : "Withdraw Funds"}
@@ -371,7 +406,7 @@ export default function WithdrawalPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Summary Card */}
-            {selectedAccountDetails && amount && parseFloat(amount) > 0 && (
+            {selectedAccountDetails && amount && parseFloat(amount) >= 100 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 className="font-bold text-gray-900 mb-4">Withdrawal Summary</h3>
                 <div className="space-y-3 text-sm">
@@ -382,13 +417,13 @@ export default function WithdrawalPage() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Fee</span>
-                    <span className="font-medium text-gray-900">{userProfile?.ngnCurrency} 0.00</span>
+                    <span className="text-gray-600">Transfer Fee</span>
+                    <span className="font-medium text-gray-900">{userProfile?.ngnCurrency} 10.00</span>
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-base">
-                    <span>Total</span>
+                    <span>Total Debit</span>
                     <span>
-                      {userProfile?.ngnCurrency} {parseFloat(amount).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                      {userProfile?.ngnCurrency} {(parseFloat(amount) + 10).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="border-t border-gray-200 pt-3">
@@ -410,13 +445,13 @@ export default function WithdrawalPage() {
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-sm text-gray-600">Withdrawals are processed within seconds </p>
+                  <p className="text-sm text-gray-600">Withdrawals are processed within seconds</p>
                 </div>
                 <div className="flex gap-3">
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-sm text-gray-600">No withdrawal fees</p>
+                  <p className="text-sm text-gray-600">Transfer fee: {userProfile?.ngnCurrency} 10.00</p>
                 </div>
                 <div className="flex gap-3">
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -438,12 +473,17 @@ export default function WithdrawalPage() {
             {/* Saved Accounts */}
             {bankAccounts.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="font-bold text-gray-900 mb-4">Saved Accounts</h3>
+                <h3 className="font-bold text-gray-900 mb-4">Saved Accounts ({bankAccounts.length})</h3>
                 <div className="space-y-2">
                   {bankAccounts.map((account) => (
                     <div
                       key={account.recipientCode}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer"
+                      onClick={() => setSelectedAccount(account.recipientCode)}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                        selectedAccount === account.recipientCode
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                      }`}
                     >
                       <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                         <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,6 +494,11 @@ export default function WithdrawalPage() {
                         <p className="font-medium text-gray-900 text-sm truncate">{account.name}</p>
                         <p className="text-xs text-gray-500">{account.accountNumber}</p>
                       </div>
+                      {selectedAccount === account.recipientCode && (
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -476,7 +521,11 @@ export default function WithdrawalPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setIsAddBankOpen(false)}
+                  onClick={() => {
+                    setIsAddBankOpen(false)
+                    setAddBankError("")
+                    setBankForm({ accountName: "", accountNumber: "", bankCode: "" })
+                  }}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -534,7 +583,10 @@ export default function WithdrawalPage() {
                     placeholder="0123456789"
                     maxLength={10}
                     value={bankForm.accountNumber}
-                    onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '') // Only numbers
+                      setBankForm({ ...bankForm, accountNumber: value })
+                    }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
@@ -568,7 +620,11 @@ export default function WithdrawalPage() {
               {/* Buttons */}
               <div className="flex gap-3 mt-6">
                 <button
-                  onClick={() => setIsAddBankOpen(false)}
+                  onClick={() => {
+                    setIsAddBankOpen(false)
+                    setAddBankError("")
+                    setBankForm({ accountName: "", accountNumber: "", bankCode: "" })
+                  }}
                   disabled={isAddingBank}
                   className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >

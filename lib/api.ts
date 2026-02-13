@@ -74,6 +74,7 @@ export interface UserProfileResponse {
   usdCurrency: string;
   ngnBalance: number;
   ngnCurrency: string;
+  usdProcessingBalance: number;
 }
 
 export interface FlutterwaveDepositRequest {
@@ -135,85 +136,85 @@ export async function transferToUser(request: TransferRequest): Promise<Transfer
   return response.data;
 }
 
-// ---------- Paystack Interfaces ----------
-export interface RecipientRequest {
-  type: string;           // e.g., "nuban" for Nigerian bank accounts
-  name: string;           // Account holder name
-  accountNumber: string;
-  bankCode: string;       // Paystack bank code
-  currency: string;       // e.g., "NGN"
-  description?: string;
-}
+// // ---------- Paystack Interfaces ----------
+// export interface RecipientRequest {
+//   type: string;           // e.g., "nuban" for Nigerian bank accounts
+//   name: string;           // Account holder name
+//   accountNumber: string;
+//   bankCode: string;       // Paystack bank code
+//   currency: string;       // e.g., "NGN"
+//   description?: string;
+// }
 
-export interface PaystackRecipientResponse {
-  status: boolean;
-  message: string;
-  data: {
-    name: string;
-    currency: string;
+// export interface PaystackRecipientResponse {
+//   status: boolean;
+//   message: string;
+//   data: {
+//     name: string;
+//     currency: string;
 
-    details: {
-      account_number: string;
-      bank_code: string;
-    };
+//     details: {
+//       account_number: string;
+//       bank_code: string;
+//     };
 
-    recipient_code: string;
-  };
-}
+//     recipient_code: string;
+//   };
+// }
 
-export interface Withdrawal {
-  id: number;
-  amount: number;
-  recipientCode: string;
-  status: string;
-  reference: string;
-  transferCode?: string;
-  createdAt?: string;
-  message?: string;
-}
+// export interface Withdrawal {
+//   id: number;
+//   amount: number;
+//   recipientCode: string;
+//   status: string;
+//   reference: string;
+//   transferCode?: string;
+//   createdAt?: string;
+//   message?: string;
+// }
 
-// ---------- Paystack Functions ----------
+// // ---------- Paystack Functions ----------
 
-export async function createRecipient(
-  request: RecipientRequest
-): Promise<PaystackRecipientResponse> {
-  const response = await apiClient.post<PaystackRecipientResponse>("/paystack/add", request);
-  return response.data;
-}
-
-
-export async function initiateWithdrawal(
-  recipientCode: string,
-  amount: number
-): Promise<Withdrawal> {
-  const response = await apiClient.post<Withdrawal>(
-    "/paystack/withdraw",
-    null,
-    {
-      params: { recipientCode, amount }
-    }
-  );
-  return response.data;
-}
+// export async function createRecipient(
+//   request: RecipientRequest
+// ): Promise<PaystackRecipientResponse> {
+//   const response = await apiClient.post<PaystackRecipientResponse>("/paystack/add", request);
+//   return response.data;
+// }
 
 
-//--------------Bank aCCOUNTS-----------//
+// export async function initiateWithdrawal(
+//   recipientCode: string,
+//   amount: number
+// ): Promise<Withdrawal> {
+//   const response = await apiClient.post<Withdrawal>(
+//     "/paystack/withdraw",
+//     null,
+//     {
+//       params: { recipientCode, amount }
+//     }
+//   );
+//   return response.data;
+// }
 
-// ---------- Bank Account (Paystack Recipient) Response ----------
-export interface BankAccountResponse {
-  recipientCode: string;
-  name: string;
-  accountNumber: string;
-  bankCode: string;
-  currency: string;
-}
 
-export async function getMyBankAccounts(): Promise<BankAccountResponse[]> {
-  const response = await apiClient.get<BankAccountResponse[]>(
-    "/paystack/recipients/my-accounts"
-  );
-  return response.data;
-}
+// //--------------Bank aCCOUNTS-----------//
+
+// // ---------- Bank Account (Paystack Recipient) Response ----------
+// export interface BankAccountResponse {
+//   recipientCode: string;
+//   name: string;
+//   accountNumber: string;
+//   bankCode: string;
+//   currency: string;
+// }
+
+// export async function getMyBankAccounts(): Promise<BankAccountResponse[]> {
+//   const response = await apiClient.get<BankAccountResponse[]>(
+//     "/paystack/recipients/my-accounts"
+//   );
+//   return response.data;
+// }
 
 
 //---------withdrawal history---------------//
@@ -304,6 +305,7 @@ export interface ConversionResponse {
   usdConverted: number;
   ngnReceived: number;
   conversionRate: number;
+  conversionFee: number,
   message: string;
 }
 
@@ -324,6 +326,231 @@ export async function getExchangeRate(): Promise<number> {
   const response = await apiClient.get<number>("/payments/rate");
   return response.data;
 }
+
+// ---------- Flutterwave Beneficiary Interfaces ----------
+export interface RecipientRequest {
+  account_number: string;
+  account_bank: string;
+  beneficiary_name?: string; // Optional - Flutterwave fetches it
+}
+
+export interface BeneficiaryData {
+  id: number;
+  accountNumber: string;
+  bankCode: string;
+  fullName: string;
+  createdAt: string;
+  bankName: string;
+}
+
+export interface FlutterwaveBeneficiaryResponse {
+  status: string;
+  message: string;
+  data: BeneficiaryData;
+}
+
+export interface Withdrawal {
+  id: number;
+  amount: number;
+  recipientCode: string; // This comes from your backend as String
+  status: string;
+  reference: string;
+  transferCode?: string;
+  createdAt?: string;
+  message?: string;
+}
+
+// ---------- Flutterwave Functions ----------
+
+export async function createRecipient(
+  request: RecipientRequest
+): Promise<FlutterwaveBeneficiaryResponse> {
+  const response = await apiClient.post<FlutterwaveBeneficiaryResponse>(
+    "/paystack/add", // Your backend endpoint
+    request
+  );
+  return response.data;
+}
+
+export async function initiateWithdrawal(
+  recipientCode: string,
+  amount: number
+): Promise<Withdrawal> {
+  const response = await apiClient.post<Withdrawal>(
+    "/paystack/withdraw",
+    {
+      recipientCode, 
+      amount
+    }
+
+  );
+  return response.data;
+}
+
+//--------------Bank ACCOUNTS (Flutterwave)-----------//
+
+export interface BankAccountResponse {
+  recipientCode: string; // String to match your backend
+  name: string;
+  accountNumber: string;
+  bankCode: string;
+  currency: string;
+}
+
+export async function getMyBankAccounts(): Promise<BankAccountResponse[]> {
+  const response = await apiClient.get<BankAccountResponse[]>(
+    "/paystack/recipients/my-accounts" // Your backend endpoint
+  );
+  return response.data;
+}
+
+// ---------- Transaction Interfaces ----------
+export type TransactionType = 
+  | "DEPOSIT" 
+  | "WITHDRAWAL" 
+  | "CONVERSION" 
+  | "TRANSFER_SENT"
+  | "TRANSFER_RECEIVED"
+  | "REFUND"
+  | "FEE";
+
+export interface TransactionResponse {
+  id: number;
+  amount: number;
+  currency: string;
+  type: TransactionType;
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  description?: string;
+  reference?: string;
+  createdAt: string;
+  completedAt?: string;
+  availableAt?: string;
+  
+  // Conversion-specific fields
+  convertedAmount?: number;
+  convertedCurrency?: string;
+  exchangeRate?: number;
+  
+  // Withdrawal-specific fields
+  recipientAccountNumber?: string;
+  recipientBankName?: string;
+  recipientName?: string;
+  
+  // Transfer-specific fields
+  paystackTransferCode?: string;
+  
+  failureReason?: string;
+  fee?: number;
+}
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
+// ---------- Transaction Functions ----------
+
+// Get all transactions
+export async function getAllTransactions(): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>("/history");
+  return response.data;
+}
+
+// Get paginated transactions
+export async function getTransactionsPaginated(
+  page: number = 0,
+  size: number = 10
+): Promise<PaginatedResponse<TransactionResponse>> {
+  const response = await apiClient.get<PaginatedResponse<TransactionResponse>>(
+    "/history/paginated",
+    {
+      params: { page, size }
+    }
+  );
+  return response.data;
+}
+
+// Get transactions by type
+export async function getTransactionsByType(
+  type: TransactionType
+): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>(
+    `/history/type/${type}`
+  );
+  return response.data;
+}
+
+// Get transactions by date range
+export async function getTransactionsByDateRange(
+  startDate: string, // ISO format: "2024-01-01T00:00:00"
+  endDate: string    // ISO format: "2024-12-31T23:59:59"
+): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>(
+    "/history/date-range",
+    {
+      params: { startDate, endDate }
+    }
+  );
+  return response.data;
+}
+
+// Get transactions by currency
+export async function getTransactionsByCurrency(
+  currency: string
+): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>(
+    `/history/currency/${currency}`
+  );
+  return response.data;
+}
+
+// Get deposits only
+export async function getDeposits(): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>("/history/deposits");
+  return response.data;
+}
+
+// Get withdrawals only
+export async function getWithdrawals(): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>("/history/withdrawals");
+  return response.data;
+}
+
+// Get conversions only
+export async function getConversions(): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>("/history/conversions");
+  return response.data;
+}
+
+// Get sent transfers
+export async function getSentTransfers(): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>("/history/type/TRANSFER_SENT");
+  return response.data;
+}
+
+// Get received transfers
+export async function getReceivedTransfers(): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>("/history/type/TRANSFER_RECEIVED");
+  return response.data;
+}
+
+// Get refunds
+export async function getRefunds(): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>("/history/type/REFUND");
+  return response.data;
+}
+
+// Get fees
+export async function getFees(): Promise<TransactionResponse[]> {
+  const response = await apiClient.get<TransactionResponse[]>("/history/type/FEE");
+  return response.data;
+}
+
 
 
 export default apiClient;

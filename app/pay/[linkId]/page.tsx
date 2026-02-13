@@ -156,7 +156,6 @@ export default function CheckoutPage() {
             <p className="text-muted-foreground">Secure Payment Checkout</p>
           </div>
         </div>
-
         {message && (
           <Alert className="mb-6 bg-accent/10 border-accent/30 text-accent">
             <AlertDescription>{message}</AlertDescription>
@@ -268,7 +267,7 @@ export default function CheckoutPage() {
             </>
           ) : (
             <>
-              <span>Proceed to Payment</span>
+              <span>Proceed to Pay With Stripe</span>
               <ArrowDownUp className="w-5 h-5 ml-2" />
             </>
           )}
@@ -304,7 +303,7 @@ export default function CheckoutPage() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground pt-4 border-t border-muted">
-            Powered by <span className="font-semibold text-foreground">PAYVORA</span> • Your payments are safe with us
+            Powered by <span className="font-semibold text-foreground">PAYVORA and STRIPE</span> • Your payments are safe with us
           </p>
         </div>
       </div>
