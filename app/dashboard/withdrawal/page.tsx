@@ -94,7 +94,7 @@ export default function WithdrawalPage() {
         account_bank: bankForm.bankCode,
         beneficiary_name: bankForm.accountName, // Pass the account name
       }
-      console.log("Sending recipient request to backend:", recipientRequest)
+      // console.log("Sending recipient request to backend:", recipientRequest)
 
 
       const response: FlutterwaveBeneficiaryResponse = await createRecipient(recipientRequest)
