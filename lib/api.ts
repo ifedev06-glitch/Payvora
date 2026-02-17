@@ -45,7 +45,9 @@ export interface RegisterRequest {
   email: string           
   gender: string           
   phoneNumber: string      
-  password: string        
+  password: string
+  businessName:string
+
 }
 
 

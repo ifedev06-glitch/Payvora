@@ -19,6 +19,7 @@ export interface RegisterRequest {
   gender: string
   phoneNumber: string
   password: string
+  businessName: string
 }
 
 export default function ClientSignup() {
@@ -32,6 +33,7 @@ export default function ClientSignup() {
     password: "",
     confirmPassword: "",
     userName: "",
+    businessName: "",
     country: "USA",
     role: "CLIENT"
   })
@@ -49,8 +51,9 @@ export default function ClientSignup() {
     e.preventDefault()
     setError("")
 
-    if (!formData.firstName || !formData.surname || !formData.email || 
-        !formData.phoneNumber || !formData.password || !formData.gender) {
+    if (!formData.firstName || !formData.surname || !formData.email ||
+      !formData.phoneNumber || !formData.password || !formData.gender ||
+      !formData.businessName) {
       setError("Please fill in all required fields")
       return
     }
@@ -63,7 +66,6 @@ export default function ClientSignup() {
     setIsLoading(true)
 
     try {
-      // Build payload exactly matching backend RegisterRequest
       const registerPayload: RegisterRequest = {
         firstName: formData.firstName,
         middleName: formData.middleName || null,
@@ -71,15 +73,14 @@ export default function ClientSignup() {
         email: formData.email,
         gender: formData.gender,
         phoneNumber: formData.phoneNumber,
-        password: formData.password
+        password: formData.password,
+        businessName: formData.businessName,
       }
 
       await signupUser(registerPayload)
 
-      // Show success modal
       setShowSuccess(true)
 
-      // Redirect to login page after 2 seconds
       setTimeout(() => {
         router.push("/")
       }, 2000)
@@ -94,7 +95,7 @@ export default function ClientSignup() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center px-4">
-      {/* Success Modal Overlay */}
+      {/* Success Modal */}
       {showSuccess && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
           <Card className="w-full max-w-sm border-border/50 shadow-2xl">
@@ -123,22 +124,23 @@ export default function ClientSignup() {
 
         <Card className="border-border/50 shadow-lg">
           <CardHeader className="space-y-2">
-            <CardTitle className="text-2xl">Sign up as Client</CardTitle>
+            <CardTitle className="text-2xl">Sign up as A Freelancer</CardTitle>
             <CardDescription>Create your account to start paying freelancers</CardDescription>
           </CardHeader>
 
           <CardContent>
-            {error ? (
+            {error && (
               <Alert className="mb-6 bg-destructive/10 border-destructive/30">
                 <AlertDescription className="text-destructive">{error}</AlertDescription>
               </Alert>
-            ) : null}
+            )}
 
             <div className="space-y-4">
+              {/* Name Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium mb-2">
-                    First Name
+                    First Name <span className="text-destructive">*</span>
                   </label>
                   <Input
                     id="firstName"
@@ -153,7 +155,7 @@ export default function ClientSignup() {
 
                 <div>
                   <label htmlFor="surname" className="block text-sm font-medium mb-2">
-                    Surname
+                    Surname <span className="text-destructive">*</span>
                   </label>
                   <Input
                     id="surname"
@@ -197,9 +199,25 @@ export default function ClientSignup() {
                 />
               </div>
 
+              {/* Business Name */}
+              <div>
+                <label htmlFor="businessName" className="block text-sm font-medium mb-2">
+                  Business Name <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  id="businessName"
+                  name="businessName"
+                  placeholder="Acme Corp"
+                  value={formData.businessName}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  className="bg-input border-border"
+                />
+              </div>
+
               <div>
                 <label htmlFor="email" className="block text-sm font-medium mb-2">
-                  Email
+                  Email <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="email"
@@ -215,13 +233,13 @@ export default function ClientSignup() {
 
               <div>
                 <label htmlFor="phoneNumber" className="block text-sm font-medium mb-2">
-                  Phone Number
+                  Phone Number <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="phoneNumber"
                   name="phoneNumber"
                   type="tel"
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="07012346587"
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   disabled={isLoading}
@@ -231,7 +249,7 @@ export default function ClientSignup() {
 
               <div>
                 <label htmlFor="gender" className="block text-sm font-medium mb-2">
-                  Gender
+                  Gender <span className="text-destructive">*</span>
                 </label>
                 <select
                   id="gender"
@@ -250,7 +268,7 @@ export default function ClientSignup() {
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium mb-2">
-                  Password
+                  Password <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="password"
@@ -266,7 +284,7 @@ export default function ClientSignup() {
 
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-                  Confirm Password
+                  Confirm Password <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="confirmPassword"
