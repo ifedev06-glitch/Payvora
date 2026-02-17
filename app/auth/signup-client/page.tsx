@@ -23,8 +23,7 @@ export default function ClientSignup() {
     confirmPassword: "",
     userName: "",
     businessName: "",
-    country: "USA",
-    role: "CLIENT"
+    country: "USA"
   })
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
