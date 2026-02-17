@@ -9,18 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, CheckCircle2 } from "lucide-react"
-import { signupUser } from "@/lib/api"
-
-export interface RegisterRequest {
-  firstName: string
-  middleName?: string | null
-  surname: string
-  email: string
-  gender: string
-  phoneNumber: string
-  password: string
-  businessName: string
-}
+import { signupUser, RegisterRequest } from "@/lib/api"
 
 export default function ClientSignup() {
   const [formData, setFormData] = useState({
