@@ -87,7 +87,7 @@ function TransactionTable({ transactions }: { transactions: TransactionResponse[
 export default function ClientDashboard() {
   const router = useRouter()
 
-  // ── state (ALL INTEGRATIONS PRESERVED) ──────────────────────────────────────
+  // ── state ────────────────────────────────────────────────────────────────────
   const [userProfile,          setUserProfile]          = useState<UserProfileResponse | null>(null)
   const [isLoadingProfile,     setIsLoadingProfile]     = useState(true)
   const [exchangeRate,         setExchangeRate]         = useState<number>(1650)
@@ -107,7 +107,7 @@ export default function ClientDashboard() {
   const [isNavigatingWithdraw, setIsNavigatingWithdraw] = useState(false)
   const [copied,               setCopied]               = useState(false)
 
-  // ── data fetching (ALL INTEGRATIONS PRESERVED) ──────────────────────────────
+  // ── data fetching ────────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try { setUserProfile(await getProfile()) }
@@ -142,7 +142,7 @@ export default function ClientDashboard() {
     return { usdAmount, conversionFee, amountAfterFee, ngnAmount }
   }
 
-  // ── handlers (ALL INTEGRATIONS PRESERVED) ───────────────────────────────────
+  // ── handlers ─────────────────────────────────────────────────────────────────
   const handleCreatePayment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) { setMessage("Please enter a valid amount"); return }
@@ -217,7 +217,8 @@ export default function ClientDashboard() {
         {/* Mobile horizontal scroll */}
         <div className="md:hidden -mx-4 px-4 overflow-x-auto pb-1">
           <div className="flex gap-3 min-w-max">
-            {/* USD */}
+
+            {/* USD — mobile */}
             <div className="w-[300px] flex-shrink-0 rounded-2xl bg-gradient-to-br from-primary to-secondary p-5 text-primary-foreground shadow-lg shadow-primary/25 relative overflow-hidden">
               <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/5" />
               <div className="absolute bottom-0 right-8 w-14 h-14 rounded-full bg-white/5" />
@@ -228,12 +229,6 @@ export default function ClientDashboard() {
                 </div>
                 <p className="text-2xl font-bold tracking-tight mb-1">${userProfile?.usdBalance.toFixed(2) || "0.00"}</p>
                 <p className="text-[10px] opacity-60 mb-3">Available balance</p>
-                {userProfile?.usdProcessingBalance && userProfile.usdProcessingBalance > 0 && (
-                  <div className="flex items-center justify-between bg-white/10 rounded-xl px-2.5 py-1.5 mb-3">
-                    <div className="flex items-center gap-1"><Clock className="w-3 h-3" /><span className="text-[10px]">Processing</span></div>
-                    <span className="text-xs font-semibold">${userProfile.usdProcessingBalance.toFixed(2)}</span>
-                  </div>
-                )}
                 <Button size="sm" className="w-full h-8 text-xs font-semibold gap-1.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white transition-all"
                   onClick={() => { setIsCreatingPayment(true); setShowPaymentModal(true); setTimeout(() => setIsCreatingPayment(false), 300) }}
                   disabled={isCreatingPayment}>
@@ -242,7 +237,28 @@ export default function ClientDashboard() {
               </div>
             </div>
 
-            {/* NGN */}
+            {/* Processing — mobile (beside USD) */}
+            <div className="w-[300px] flex-shrink-0 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-800 p-5 text-white shadow-lg shadow-slate-700/25 relative overflow-hidden">
+              <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/5" />
+              <div className="absolute bottom-0 right-8 w-14 h-14 rounded-full bg-white/5" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Clock className="w-3.5 h-3.5 opacity-70" />
+                  <span className="text-xs font-medium opacity-80">Processing Balance</span>
+                </div>
+                <p className="text-2xl font-bold tracking-tight mb-1">
+                  ${userProfile?.usdProcessingBalance?.toFixed(2) || "0.00"}
+                </p>
+                <p className="text-[10px] opacity-60 mb-3">Pending clearance</p>
+                <div className="bg-white/10 rounded-xl px-2.5 py-2 border border-white/10">
+                  <p className="text-[10px] opacity-80 leading-relaxed">
+                    ⏳ Funds available in <span className="font-semibold">2 - 5 days</span> after deposit confirmation
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* NGN — mobile */}
             <div className="w-[300px] flex-shrink-0 rounded-2xl bg-gradient-to-br from-primary/90 via-secondary/80 to-primary/70 p-5 text-primary-foreground shadow-lg shadow-primary/25 relative overflow-hidden">
               <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/5" />
               <div className="relative z-10">
@@ -251,20 +267,22 @@ export default function ClientDashboard() {
                   <span className="text-xs font-medium opacity-80">NGN Wallet</span>
                 </div>
                 <p className="text-2xl font-bold tracking-tight mb-1">₦{userProfile?.ngnBalance.toLocaleString("en-NG", { minimumFractionDigits: 0 }) || "0"}</p>
-                <p className="text-[10px] opacity-60 mb-auto">Available balance</p>
-                <Button size="sm" className="w-full h-8 text-xs font-semibold rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white transition-all mt-6"
+                <p className="text-[10px] opacity-60 mb-3">Available balance</p>
+                <Button size="sm" className="w-full h-8 text-xs font-semibold rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white transition-all"
                   onClick={() => { setIsNavigatingWithdraw(true); router.push("/dashboard/withdrawal") }}
                   disabled={isNavigatingWithdraw}>
                   {isNavigatingWithdraw ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Loading...</> : "Withdraw"}
                 </Button>
               </div>
             </div>
+
           </div>
         </div>
 
-        {/* Desktop grid */}
+        {/* Desktop grid — USD + Processing side by side, NGN full width below */}
         <div className="hidden md:grid md:grid-cols-2 gap-5">
-          {/* USD */}
+
+          {/* USD — desktop */}
           <div className="rounded-3xl bg-gradient-to-br from-primary to-secondary p-6 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden">
             <div className="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/5" />
             <div className="absolute top-10 -right-2 w-20 h-20 rounded-full bg-white/5" />
@@ -277,12 +295,6 @@ export default function ClientDashboard() {
               </div>
               <p className="text-[11px] uppercase tracking-widest opacity-60 mb-1">Available balance</p>
               <p className="text-4xl font-bold tracking-tight mb-4">${userProfile?.usdBalance.toFixed(2) || "0.00"}</p>
-              {userProfile?.usdProcessingBalance && userProfile.usdProcessingBalance > 0 && (
-                <div className="flex items-center justify-between bg-white/10 rounded-xl px-3 py-2 mb-4">
-                  <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /><span className="text-xs opacity-90">Processing (48hr)</span></div>
-                  <span className="text-sm font-semibold">${userProfile.usdProcessingBalance.toFixed(2)}</span>
-                </div>
-              )}
               <Button size="sm" className="w-full h-10 text-sm font-semibold gap-2 rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white transition-all"
                 onClick={() => { setIsCreatingPayment(true); setShowPaymentModal(true); setTimeout(() => setIsCreatingPayment(false), 300) }}
                 disabled={isCreatingPayment}>
@@ -291,26 +303,52 @@ export default function ClientDashboard() {
             </div>
           </div>
 
-          {/* NGN */}
-          <div className="rounded-3xl bg-gradient-to-br from-primary/90 via-secondary/80 to-primary/70 p-6 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden">
+          {/* Processing Balance — desktop (beside USD) */}
+          <div className="rounded-3xl bg-gradient-to-br from-slate-600 to-slate-800 p-6 text-white shadow-xl shadow-slate-700/20 relative overflow-hidden">
             <div className="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/5" />
             <div className="absolute top-10 -right-2 w-20 h-20 rounded-full bg-white/5" />
             <div className="relative z-10 flex flex-col h-full">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-                  <Wallet className="w-4 h-4" />
+                  <Clock className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-medium opacity-90">NGN Wallet</span>
+                <span className="text-sm font-medium opacity-90">Processing</span>
               </div>
-              <p className="text-[11px] uppercase tracking-widest opacity-60 mb-1">Available balance</p>
-              <p className="text-4xl font-bold tracking-tight mb-auto">₦{userProfile?.ngnBalance.toLocaleString("en-NG", { minimumFractionDigits: 0 }) || "0"}</p>
-              <Button size="sm" className="w-full h-10 text-sm font-semibold rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white transition-all mt-4"
+              <p className="text-[11px] uppercase tracking-widest opacity-60 mb-1">Pending balance</p>
+              <p className="text-4xl font-bold tracking-tight mb-auto">
+                ${userProfile?.usdProcessingBalance?.toFixed(2) || "0.00"}
+              </p>
+              <div className="mt-4 p-3 bg-white/10 rounded-xl border border-white/10">
+                <p className="text-[11px] opacity-80 leading-relaxed">
+                  ⏳ Processing funds will be available in <span className="font-semibold">2 - 5 days</span> after deposit confirmation.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* NGN — desktop (full width) */}
+          <div className="md:col-span-2 rounded-3xl bg-gradient-to-br from-primary/90 via-secondary/80 to-primary/70 p-6 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden">
+            <div className="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/5" />
+            <div className="absolute top-10 -right-2 w-20 h-20 rounded-full bg-white/5" />
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-medium opacity-90">NGN Wallet</span>
+                </div>
+                <p className="text-[11px] uppercase tracking-widest opacity-60 mb-1">Available balance</p>
+                <p className="text-4xl font-bold tracking-tight">₦{userProfile?.ngnBalance.toLocaleString("en-NG", { minimumFractionDigits: 0 }) || "0"}</p>
+              </div>
+              <Button size="sm" className="h-10 px-8 text-sm font-semibold rounded-xl bg-white/20 hover:bg-white/30 border border-white/25 text-white transition-all flex-shrink-0"
                 onClick={() => { setIsNavigatingWithdraw(true); router.push("/dashboard/withdrawal") }}
                 disabled={isNavigatingWithdraw}>
                 {isNavigatingWithdraw ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Loading...</> : "Withdraw to Bank"}
               </Button>
             </div>
           </div>
+
         </div>
 
         {/* ── Conversion + Rate ────────────────────────────────────────────── */}
@@ -408,7 +446,7 @@ export default function ClientDashboard() {
       </main>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          MODALS — all handler calls preserved exactly as original
+          MODALS
       ═══════════════════════════════════════════════════════════════════════ */}
 
       {/* ── Create Payment Modal ─────────────────────────────────────────── */}

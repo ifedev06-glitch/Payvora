@@ -2,65 +2,82 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { ArrowLeft, ArrowDownUp, ArrowDownLeft, ArrowUpRight, RefreshCw, DollarSign, X, ChevronLeft, ChevronRight } from "lucide-react"
 import {
   getAllTransactions,
   TransactionResponse
 } from "@/lib/api"
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 7
+
+const creditTypes = ["DEPOSIT", "TRANSFER_RECEIVED", "REFUND"]
+
+const typeConfig: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
+  DEPOSIT:           { label: "Deposit",    icon: <ArrowDownLeft className="w-3.5 h-3.5" />,  className: "bg-violet-50 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-900/20 dark:text-violet-400" },
+  WITHDRAWAL:        { label: "Withdrawal", icon: <ArrowUpRight className="w-3.5 h-3.5" />,   className: "bg-orange-50 text-orange-700 ring-1 ring-orange-200 dark:bg-orange-900/20 dark:text-orange-400" },
+  CONVERSION:        { label: "Conversion", icon: <ArrowDownUp className="w-3.5 h-3.5" />,    className: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-400" },
+  TRANSFER_SENT:     { label: "Sent",       icon: <ArrowUpRight className="w-3.5 h-3.5" />,   className: "bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-900/20 dark:text-red-400" },
+  TRANSFER_RECEIVED: { label: "Received",   icon: <ArrowDownLeft className="w-3.5 h-3.5" />,  className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400" },
+  REFUND:            { label: "Refund",     icon: <RefreshCw className="w-3.5 h-3.5" />,      className: "bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-400" },
+  FEE:               { label: "Fee",        icon: <DollarSign className="w-3.5 h-3.5" />,     className: "bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-400" },
+}
+
+const statusConfig: Record<string, { label: string; className: string }> = {
+  COMPLETED:  { label: "Completed",  className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-800" },
+  PROCESSING: { label: "Processing", className: "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-800" },
+  PENDING:    { label: "Pending",    className: "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-800" },
+  FAILED:     { label: "Failed",     className: "bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-900/20 dark:text-red-400 dark:ring-red-800" },
+}
+
+function formatAmount(tx: TransactionResponse) {
+  const symbol = tx.currency === "NGN" ? "₦" : "$"
+  const sign = creditTypes.includes(tx.type) ? "+" : "-"
+  const formatted = tx.currency === "NGN"
+    ? tx.amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : tx.amount.toFixed(2)
+  return `${sign}${symbol}${formatted}`
+}
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+}
+
+function formatDateTime(d: string) {
+  return new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+}
+
+function Detail({ label, value }: { label: string; value?: string | number | null }) {
+  if (!value) return null
+  return (
+    <div className="flex justify-between gap-6 py-2.5 border-b border-border/30 last:border-0">
+      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="font-medium text-right text-sm max-w-[60%] break-words text-foreground">{String(value)}</span>
+    </div>
+  )
+}
 
 export default function TransactionsPage() {
-
   const router = useRouter()
 
   const [transactions, setTransactions] = useState<TransactionResponse[]>([])
-  const [selectedTx, setSelectedTx] = useState<TransactionResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedTx, setSelectedTx]     = useState<TransactionResponse | null>(null)
+  const [loading, setLoading]           = useState(true)
+  const [currentPage, setCurrentPage]   = useState(1)
 
   useEffect(() => {
-    loadTransactions()
+    ;(async () => {
+      try {
+        const data = await getAllTransactions()
+        setTransactions(data)
+      } finally {
+        setLoading(false)
+      }
+    })()
   }, [])
 
-  const loadTransactions = async () => {
-    try {
-      const data = await getAllTransactions()
-      setTransactions(data)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const totalPages  = Math.ceil(transactions.length / PAGE_SIZE)
+  const paginatedTx = transactions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
-  const creditTypes = ["DEPOSIT", "TRANSFER_RECEIVED", "REFUND"]
-
-  const formatAmount = (tx: TransactionResponse) => {
-    const symbol = tx.currency === "NGN" ? "₦" : "$"
-    const sign = creditTypes.includes(tx.type) ? "+" : "-"
-    return `${sign}${symbol}${tx.amount.toLocaleString()}`
-  }
-
-  const statusStyle = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "bg-green-50 text-green-600"
-      case "FAILED":
-        return "bg-red-50 text-red-600"
-      case "PROCESSING":
-      case "PENDING":
-        return "bg-yellow-50 text-yellow-600"
-      default:
-        return "bg-gray-50 text-gray-600"
-    }
-  }
-
-  // Pagination calculations
-  const totalPages = Math.ceil(transactions.length / PAGE_SIZE)
-  const paginatedTx = transactions.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  )
-
-  // Generate page numbers to show (max 5 visible)
   const getPageNumbers = () => {
     const pages: (number | "...")[] = []
     if (totalPages <= 5) {
@@ -68,9 +85,7 @@ export default function TransactionsPage() {
     } else {
       pages.push(1)
       if (currentPage > 3) pages.push("...")
-      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-        pages.push(i)
-      }
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i)
       if (currentPage < totalPages - 2) pages.push("...")
       pages.push(totalPages)
     }
@@ -78,113 +93,115 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="min-h-screen bg-slate-50/70 dark:bg-background">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-7">
 
-      {/* HEADER WITH BACK BUTTON */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 px-4 py-2 border rounded-xl hover:bg-gray-100 transition font-medium"
-        >
-          ← Back
-        </button>
-
+        {/* ── Header ──────────────────────────────────────────────────────── */}
         <div>
-          <h1 className="text-2xl font-bold">Transactions</h1>
-          <p className="text-gray-500">
-            View and manage all your financial activity.
-          </p>
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-5 transition-colors font-medium group"
+          >
+            <span className="group-hover:-translate-x-0.5 transition-transform">
+              <ArrowLeft className="w-4 h-4" />
+            </span>
+            Back to Dashboard
+          </button>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">History</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">Transactions</h1>
+          <p className="text-sm text-muted-foreground mt-1">View and manage all your financial activity</p>
         </div>
-      </div>
 
-      {/* TABLE CARD */}
-      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-
+        {/* ── Transaction Cards ────────────────────────────────────────────── */}
         {loading ? (
-          <div className="py-20 text-center text-gray-400">
-            Loading transactions...
+          <div className="py-20 flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground">Loading transactions...</p>
           </div>
         ) : transactions.length === 0 ? (
-          <div className="py-20 text-center text-gray-400">
-            No transactions yet
+          <div className="py-20 text-center bg-white dark:bg-card rounded-2xl border border-border/50">
+            <p className="text-sm text-muted-foreground">No transactions yet</p>
           </div>
         ) : (
           <>
-            <table className="w-full">
-              <thead className="bg-gray-50 text-sm text-gray-500">
-                <tr>
-                  <th className="p-4 text-left font-medium">Type</th>
-                  <th className="p-4 text-left font-medium">Amount</th>
-                  <th className="p-4 text-left font-medium">Status</th>
-                  <th className="p-4 text-left font-medium">Date</th>
-                </tr>
-              </thead>
+            <div className="space-y-3">
+              {paginatedTx.map((tx) => {
+                const type     = typeConfig[tx.type]     ?? typeConfig.DEPOSIT
+                const status   = statusConfig[tx.status] ?? statusConfig.PENDING
+                const isCredit = creditTypes.includes(tx.type)
 
-              <tbody>
-                {paginatedTx.map(tx => (
-                  <tr
+                return (
+                  <div
                     key={tx.id}
                     onClick={() => setSelectedTx(tx)}
-                    className="border-t hover:bg-gray-50 cursor-pointer transition"
+                    className="bg-white dark:bg-card rounded-2xl border border-border/50 shadow-sm px-5 py-4 flex items-center justify-between gap-4 hover:border-primary/30 hover:shadow-md cursor-pointer transition-all"
                   >
-                    <td className="p-4 font-medium">
-                      {tx.type.replace("_", " ")}
-                    </td>
+                    {/* Left: icon + type + date */}
+                    <div className="flex items-center gap-4 min-w-0">
+                      {/* Icon bubble */}
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        isCredit
+                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20"
+                          : "bg-red-50 text-red-500 dark:bg-red-900/20"
+                      }`}>
+                        {type.icon}
+                      </div>
 
-                    <td className={`p-4 font-semibold ${creditTypes.includes(tx.type) ? "text-green-600" : "text-red-600"}`}>
+                      {/* Type + date */}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${type.className}`}>
+                            {type.label}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${status.className}`}>
+                            {status.label}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">{formatDate(tx.createdAt)}</p>
+                      </div>
+                    </div>
+
+                    {/* Right: amount */}
+                    <p className={`text-base font-bold flex-shrink-0 ${isCredit ? "text-emerald-600" : "text-red-500"}`}>
                       {formatAmount(tx)}
-                    </td>
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
 
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyle(tx.status)}`}>
-                        {tx.status}
-                      </span>
-                    </td>
-
-                    <td className="p-4 text-sm text-gray-500">
-                      {new Date(tx.createdAt).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* PAGINATION FOOTER */}
+            {/* ── Pagination ────────────────────────────────────────────── */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
-                {/* Left: count info */}
-                <p className="text-sm text-gray-500">
+              <div className="flex items-center justify-between px-1">
+                <p className="text-sm text-muted-foreground">
                   Showing{" "}
-                  <span className="font-medium text-gray-700">
+                  <span className="font-semibold text-foreground">
                     {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, transactions.length)}
                   </span>{" "}
                   of{" "}
-                  <span className="font-medium text-gray-700">{transactions.length}</span>
+                  <span className="font-semibold text-foreground">{transactions.length}</span>
                 </p>
 
-                {/* Right: page buttons */}
                 <div className="flex items-center gap-1">
-                  {/* Prev */}
                   <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="p-1.5 rounded-lg border border-border/60 bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-muted/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    ←
+                    <ChevronLeft className="w-4 h-4" />
                   </button>
 
-                  {/* Page numbers */}
                   {getPageNumbers().map((page, i) =>
                     page === "..." ? (
-                      <span key={`ellipsis-${i}`} className="px-2 text-gray-400 text-sm select-none">…</span>
+                      <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground text-sm select-none">…</span>
                     ) : (
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page as number)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition ${
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                           currentPage === page
-                            ? "bg-primary text-white border-primary"
-                            : "bg-white hover:bg-gray-100 text-gray-700"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-white dark:bg-card border-border/60 hover:bg-slate-50 dark:hover:bg-muted/30 text-foreground"
                         }`}
                       >
                         {page}
@@ -192,81 +209,90 @@ export default function TransactionsPage() {
                     )
                   )}
 
-                  {/* Next */}
                   <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="p-1.5 rounded-lg border border-border/60 bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-muted/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    →
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             )}
           </>
         )}
-      </div>
+      </main>
 
-      {/* MODAL */}
+      {/* ── Transaction Detail Modal ─────────────────────────────────────── */}
       {selectedTx && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white dark:bg-card w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border border-border/50">
+            <div className="p-6 space-y-5">
 
-            {/* Header */}
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Transaction Details</h2>
+              {/* Modal Header */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground tracking-tight">Transaction Details</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Full breakdown of this transaction</p>
+                </div>
+                <button
+                  onClick={() => setSelectedTx(null)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-muted rounded-xl transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Amount + Status */}
+              <div className="p-5 bg-slate-50 dark:bg-muted/30 rounded-2xl border border-border/40">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Amount</p>
+                <p className={`text-3xl font-bold tracking-tight ${creditTypes.includes(selectedTx.type) ? "text-emerald-600" : "text-red-500"}`}>
+                  {formatAmount(selectedTx)}
+                </p>
+                <div className="flex items-center gap-2 mt-3">
+                  {(() => {
+                    const type   = typeConfig[selectedTx.type]     ?? typeConfig.DEPOSIT
+                    const status = statusConfig[selectedTx.status] ?? statusConfig.PENDING
+                    return (
+                      <>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${type.className}`}>
+                          {type.icon}{type.label}
+                        </span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${status.className}`}>
+                          {status.label}
+                        </span>
+                      </>
+                    )
+                  })()}
+                </div>
+              </div>
+
+              {/* Details */}
+              <div>
+                <Detail label="Reference"        value={selectedTx.reference} />
+                <Detail label="Description"      value={selectedTx.description} />
+                <Detail label="Currency"         value={selectedTx.currency} />
+                <Detail label="Exchange Rate"    value={selectedTx.exchangeRate} />
+                <Detail label="Fee"              value={selectedTx.fee} />
+                <Detail label="Created At"       value={selectedTx.createdAt ? formatDateTime(selectedTx.createdAt) : undefined} />
+                <Detail label="Completed At"     value={selectedTx.completedAt ? formatDateTime(selectedTx.completedAt) : undefined} />
+                <Detail label="Failure Reason" value={selectedTx.status === "FAILED" ? "Issue from recipient bank" : undefined} />
+                <Detail label="Recipient Name"   value={selectedTx.recipientName} />
+                <Detail label="Recipient Bank"   value={selectedTx.recipientBankName} />
+                <Detail label="Recipient Acct"   value={selectedTx.recipientAccountNumber} />
+              </div>
+
               <button
                 onClick={() => setSelectedTx(null)}
-                className="text-gray-400 hover:text-gray-600 text-xl"
+                className="w-full px-4 py-3 text-sm font-semibold border border-border/60 rounded-xl hover:bg-slate-50 dark:hover:bg-muted/30 transition-colors text-foreground"
               >
-                ✕
+                Close
               </button>
+
             </div>
-
-            {/* Amount */}
-            <div className="text-3xl font-bold">
-              {formatAmount(selectedTx)}
-            </div>
-
-            {/* Status */}
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyle(selectedTx.status)}`}>
-              {selectedTx.status}
-            </span>
-
-            <div className="border-t pt-4 space-y-2 text-sm">
-              <Detail label="Reference" value={selectedTx.reference} />
-              <Detail label="Description" value={selectedTx.description} />
-              <Detail label="Currency" value={selectedTx.currency} />
-              <Detail label="Exchange Rate" value={selectedTx.exchangeRate} />
-              <Detail label="Fee" value={selectedTx.fee} />
-              <Detail label="Created At" value={selectedTx.createdAt} />
-              <Detail label="Completed At" value={selectedTx.completedAt} />
-              <Detail label="Failure Reason" value={selectedTx.failureReason} />
-              <Detail label="Recipient Name" value={selectedTx.recipientName} />
-              <Detail label="Recipient Bank" value={selectedTx.recipientBankName} />
-              <Detail label="Recipient Account" value={selectedTx.recipientAccountNumber} />
-            </div>
-
           </div>
         </div>
       )}
-
-    </div>
-  )
-}
-
-function Detail({
-  label,
-  value
-}: {
-  label: string
-  value?: string | number
-}) {
-  if (!value) return null
-  return (
-    <div className="flex justify-between gap-6">
-      <span className="text-gray-500">{label}</span>
-      <span className="font-medium text-right max-w-[60%] break-words">{value}</span>
     </div>
   )
 }

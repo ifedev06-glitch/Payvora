@@ -15,16 +15,16 @@ import {
 } from "@/lib/api"
 
 const NIGERIAN_BANKS = [
-  { code: "999992", name: "OPay Digital Services Limited (OPay)" },
+  { code: "100004", name: "OPay Digital Services Limited (OPay)" },
   { code: "044",    name: "Access Bank" },
-  { code: "063",    name: "Access Bank (Diamond)" },
+  // { code: "063",    name: "Access Bank (Diamond)" },
   { code: "011",    name: "First Bank of Nigeria" },
   { code: "058",    name: "Guaranty Trust Bank" },
   { code: "214",    name: "First City Monument Bank" },
   { code: "082",    name: "Keystone Bank" },
   { code: "035",    name: "Wema Bank" },
   { code: "057",    name: "Zenith Bank" },
-  { code: "50211",  name: "Kuda Bank" },
+  // { code: "50211",  name: "Kuda Bank" },
   { code: "033",    name: "United Bank for Africa" },
   { code: "215",    name: "Unity Bank" },
 ]
