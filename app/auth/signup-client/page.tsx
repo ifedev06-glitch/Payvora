@@ -113,7 +113,7 @@ export default function ClientSignup() {
         <Card className="border-border/50 shadow-lg">
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl">Sign up as A Freelancer</CardTitle>
-            <CardDescription>Create your account to start paying freelancers</CardDescription>
+            <CardDescription>Create your account to start receiving money easily as a freelancer</CardDescription>
           </CardHeader>
 
           <CardContent>
