@@ -252,7 +252,7 @@ export default function ClientDashboard() {
                 <p className="text-[10px] opacity-60 mb-3">Pending clearance</p>
                 <div className="bg-white/10 rounded-xl px-2.5 py-2 border border-white/10">
                   <p className="text-[10px] opacity-80 leading-relaxed">
-                    ⏳ Funds available in <span className="font-semibold">2 - 5 days</span> after deposit confirmation
+                    ⏳ Funds available in <span className="font-semibold">2 - 5 days</span> after deposit confirmation - Fee 1%
                   </p>
                 </div>
               </div>
